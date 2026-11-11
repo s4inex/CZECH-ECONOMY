@@ -1,24 +1,304 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Simulátor Ekonomiky ČR</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #181825;
-      overflow: hidden; /* Zabrání scrollbarům na PC */
-    }
-    canvas {
-      display: block;
-      touch-action: none; /* Klíčové pro mobily: předá swipování do p5.js a nezabírá prohlížeči */
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Interaktivní rozpočet ČR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#0d0e18;--panel:#151729;--line:#2a2d4a;--tx:#e6e7f7;--mut:#8b8fb5;--ok:#a6e3a1;--bad:#f38ba8;--acc:#89b4fa;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+h1{font-size:16px;margin:0;letter-spacing:.04em}
+.ctl{display:flex;flex-direction:column;font-size:12px;color:var(--mut);min-width:130px}
+.ctl b{color:var(--tx)}
+input[type=range]{width:100%;accent-color:var(--acc)}
+button{background:#1f2240;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--acc)}
+#btns{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+#kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+#kpi div{background:var(--bg);padding:6px 12px}
+#kpi small{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+#kpi span{font-size:17px;font-weight:600}
+#stage{flex:1;min-height:0;position:relative}
+canvas{display:block}
+#tip{position:absolute;display:none;pointer-events:none;background:rgba(20,21,36,.96);border:1px solid var(--line);border-radius:8px;padding:8px 11px;max-width:260px;box-shadow:0 6px 24px #000a;font-size:13px}
+#tip b{display:block;margin-bottom:2px}
+#tip em{color:var(--mut);font-style:normal;font-size:12px;display:block}
+#hint{position:absolute;left:10px;bottom:8px;right:10px;font-size:11px;color:var(--mut);pointer-events:none;text-shadow:0 0 6px var(--bg),0 0 6px var(--bg)}
+</style>
 </head>
 <body>
-  <script src="sketch.js"></script>
+<header>
+  <h1>ROZPOČET ČR</h1>
+  <div class="ctl"><label>Rok: <b id="yl">2024</b></label><input type="range" id="yr" min="2024" max="2050" value="2024"></div>
+  <div class="ctl"><label>Úrok z dluhu: <b id="rl">3,0 %</b></label><input type="range" id="rt" min="15" max="70" value="30"></div>
+  <div id="btns">
+    <button id="bAll">Rozbalit vše</button>
+    <button id="bNone">Sbalit</button>
+    <button id="bFit">Celý přehled</button>
+  </div>
+</header>
+<div id="kpi">
+  <div><small>Příjmy</small><span id="kP" style="color:var(--ok)"></span></div>
+  <div><small>Výdaje</small><span id="kV" style="color:var(--bad)"></span></div>
+  <div><small>Saldo</small><span id="kS"></span></div>
+  <div><small>Státní dluh</small><span id="kD" style="color:var(--acc)"></span></div>
+  <div><small>Dluh / HDP</small><span id="kG"></span></div>
+</div>
+<div id="stage">
+  <div id="tip"></div>
+  <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · kolečko / štípnutí = zoom (čím blíž, tím víc detailů) · Čísla v mld. Kč jsou zaokrouhlené orientační odhady, ne oficiální data; růst je zjednodušený model.</div>
+</div>
+
+<script>
+// ---------- konstanty a stav ----------
+const W = 190, CG = 64, GAP = 4, SC = 0.45;      // šířka bloku, mezera sloupců, mezera řádků, mld. Kč -> px
+const BASE_DEBT = 3200, BASE_GDP = 7800, GDP_G = 0.045;
+let P, V, debtNode, year = 2024, rate = 0.03, debt = BASE_DEBT, gdp = BASE_GDP;
+let panX = 0, panY = 0, zoom = 1, mx = -1, my = -1, hover = null, bounds, cnv;
+const ptrs = new Map(); let moved = false, start = null, lastPinch = null;
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 1) => new Intl.NumberFormat('cs-CZ', {minimumFractionDigits: d, maximumFractionDigits: d}).format(v);
+const rgbOf = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
+
+// ---------- datový model ----------
+class Node {
+  constructor(name, col, parent, depth) {
+    this.name = name; this.rgb = rgbOf(col); this.parent = parent; this.depth = depth;
+    this.root = parent ? parent.root : this;
+    this.kids = []; this.exp = false; this.base = 0; this.sim = 0; this.val = 0; this.g = 0;
+    this.x = this.y = this.h = 0; this.tx = this.ty = this.th = 0; this.sub = 0; this.init = false;
+  }
+  reset() { this.sim = this.base; this.kids.forEach(k => k.reset()); }
+  grow() { this.kids.length ? this.kids.forEach(k => k.grow()) : this.sim *= 1 + this.g; }
+  total() { return this.val = this.kids.length ? this.kids.reduce((s, k) => s + k.total(), 0) : this.sim; }
+}
+// spec: [název, hodnota | [potomci], roční růst, (barva skupiny)]
+function build(spec, parent, col, depth) {
+  const [name, v, g, c] = spec; col = c || col;
+  const n = new Node(name, col, parent, depth);
+  if (Array.isArray(v)) n.kids = v.map(s => build(s, n, col, depth + 1));
+  else { n.base = v; n.g = g || 0; }
+  if (name === 'Obsluha státního dluhu') debtNode = n;
+  return n;
+}
+function initData() {
+  P = build(['CELKOVÉ PŘÍJMY', [
+    ['Daňové příjmy', [
+      ['DPH', 386, .03],
+      ['Daně z příjmů', [
+        ['Právnické osoby (firmy)', 240, .025],
+        ['Fyzické osoby', [
+          ['Ze závislé činnosti', 140, .04], ['Z přiznání (OSVČ)', 10, .03], ['Srážková daň', 10, .02]]]]],
+      ['Spotřební daně', [
+        ['Minerální oleje', 85, .01], ['Tabákové výrobky', 60, -.01], ['Líh a lihoviny', 15, .01], ['Pivo a víno', 10, .01]]],
+      ['Majetkové a ostatní', [['Daň z nemovitých věcí', 15, .02], ['Silniční daň', 1, 0], ['Odvody z hazardu', 12, .02], ['Správní poplatky', 6, .02]]],
+      ['Ekologické daně', [['Zemní plyn', 3.5, .01], ['Elektřina', 2, .01], ['Pevná paliva', 0.5, 0]]],
+      ['Clo (podíl ČR)', 5, .01]], 0, '#94e2d5'],
+    ['Sociální pojištění', [
+      ['Důchodové pojištění', [['Zaměstnavatelé', 420, .035], ['Zaměstnanci', 160, .035], ['OSVČ', 50, .03]]], ['Nemocenské pojištění', 45, .03], ['Politika zaměstnanosti', 25, .03]], 0, '#f9e2af'],
+    ['Nedaňové a kapitálové', [
+      ['Příjmy z rozpočtu EU', [['Strukturální a kohezní fondy', 70, .01], ['Společná zemědělská politika', 30, .01], ['Ostatní programy EU', 10, .01]]], ['Příjmy z prodeje majetku', 15, 0], ['Sankce, poplatky a ostatní', [['Dividendy a odvody státních podniků', 25, .02], ['Soudní poplatky a pokuty', 20, .02], ['Příjmy z úroků a služeb', 14, .02], ['Ostatní nedaňové', 45, .02]]]], 0, '#fab387']
+  ]], null, '#a6e3a1', 0);
+
+  V = build(['CELKOVÉ VÝDAJE', [
+    ['Práce a sociální věci', [
+      ['Důchodový systém', [['Starobní důchody', 580, .045], ['Invalidní důchody', 65, .03], ['Vdovské a sirotčí', 55, .025]]],
+      ['Sociální podpora', [['Rodičovský příspěvek', 42, .01], ['Příspěvek na bydlení', 18, .05], ['Přídavky na děti', 6, .02], ['Ostatní dávky', 14, .02]]],
+      ['Péče a zdravotní postižení', [['Příspěvek na péči', 45, .045], ['Dávky osobám se zdravotním postižením', 16, .03], ['Sociální služby (dotace krajům)', 26, .03]]],
+      ['Zaměstnanost', [['Podpora v nezaměstnanosti', 14, .02], ['Aktivní politika zaměstnanosti', 9, .02]]]], 0, '#f38ba8'],
+    ['Školství', [
+      ['Regionální školství', [['Platy učitelů', 160, .035], ['Provozní výdaje škol', 30, .02], ['Asistenti pedagoga', 12, .04], ['Nepedagogičtí pracovníci', 25, .03], ['Učebnice a rozvojové programy', 8, .02]]],
+      ['Vysoké školy', 40, .03], ['Věda a výzkum', [['Grantová agentura ČR', 7, .04], ['Akademie věd ČR', 8, .04], ['Technologická agentura ČR', 7, .04], ['Operační programy a ostatní', 21, .04]]]], 0, '#fab387'],
+    ['Zdravotnictví', [['Platby za státní pojištěnce', 145, .04], ['Dotace nemocnicím', 15, .02], ['Investice do zdravotnictví', 8, .03], ['Veřejné zdraví a prevence', 5, .03], ['Záchranné služby a ostatní', 7, .02]], 0, '#f9e2af'],
+    ['Obrana', [['Akvizice techniky', 70, .06], ['Personální náklady', 50, .04], ['Provoz a výcvik', 40, .03], ['Výstavba a infrastruktura', 12, .04], ['Zahraniční mise a NATO', 8, .03], ['Vojenská správa a zdravotnictví', 6, .03], ['Kyberobrana a zpravodajství', 5, .05]], 0, '#a6e3a1'],
+    ['Doprava', [
+      ['Dopravní infrastruktura', [['Dálnice a silnice 1. tříd', 80, .03], ['Železnice', 55, .03], ['Silnice II. a III. třídy', 12, .03], ['Cyklostezky a ostatní', 4, .03]]],
+      ['Dotace regionům', 15, .02], ['Dálková veřejná doprava', 12, .03], ['Vodní doprava a ostatní', 3, .02]], 0, '#94e2d5'],
+    ['Vnitro a bezpečnost', [['Policie ČR', 50, .03], ['Hasičský sbor', 15, .03], ['Státní správa', 35, .02], ['Cizinecká policie a azyl', 6, .03], ['Volby a registry', 4, .02], ['Krizové řízení', 3, .03]], 0, '#89b4fa'],
+    ['Transfery samosprávám', [['Dotace krajům', 30, .03], ['Dotace obcím', 25, .03]], 0, '#f5c2e7'],
+    ['Odvod do rozpočtu EU', 60, .02, '#74c7ec'],
+    ['Obsluha státního dluhu', 95, 0, '#cba6f7'],
+    ['Ostatní resorty', [['Zemědělství', 65, .015], ['Průmysl a obchod', 50, .02], ['Spravedlnost', [['Soudy', 17, .03], ['Vězeňství', 12, .03], ['Státní zastupitelství', 6, .03]]],
+      ['Zahraničí', [['Zastupitelské úřady', 8, .02], ['Rozvojová spolupráce', 4, .02], ['Mezinárodní organizace', 3, .02]]],
+      ['Kultura', [['Kulturní instituce', 9, .02], ['Památková péče', 5, .02]]],
+      ['Životní prostředí', [['Ochrana ovzduší a vod', 15, .02], ['Krajina a příroda', 10, .02]]],
+      ['Místní rozvoj', [['Podpora bydlení', 7, .02], ['Cestovní ruch', 3, .02], ['Regionální rozvoj', 2, .02]]],
+      ['Ústavní orgány a úřady', 8, .02], ['Rezervy', 42, .02]], 0, '#b4befe']
+  ]], null, '#f38ba8', 0);
+  P.exp = V.exp = true;
+}
+
+// ---------- simulace (opravené pořadí: úrok se počítá z dluhu na začátku roku) ----------
+function simulate() {
+  P.reset(); V.reset(); debt = BASE_DEBT; gdp = BASE_GDP; let prev = 0;
+  for (let y = 2024; y <= year; y++) {
+    if (y > 2024) { P.grow(); V.grow(); gdp *= 1 + GDP_G; debt -= prev; }
+    debtNode.sim = debt * rate;
+    prev = P.total() - V.total();
+  }
+  updateKpi();
+}
+function updateKpi() {
+  const s = P.val - V.val;
+  $('kP').textContent = fmt(P.val, 0) + ' mld.'; $('kV').textContent = fmt(V.val, 0) + ' mld.';
+  $('kS').textContent = fmt(s, 0) + ' mld.'; $('kS').style.color = s >= 0 ? 'var(--ok)' : 'var(--bad)';
+  $('kD').textContent = fmt(debt, 0) + ' mld.'; $('kG').textContent = fmt(debt / gdp * 100, 1) + ' %';
+}
+
+// ---------- rozložení (každý podstrom má vlastní výšku, takže se bloky nepřekrývají) ----------
+function layout(n, x, y, dir) {
+  n.tx = dir < 0 ? x - W : x; n.ty = y; n.th = n.val * SC;
+  let sub = n.th;
+  if (n.exp && n.kids.length) {
+    const nx = dir < 0 ? n.tx - CG : n.tx + W + CG;
+    let cy = y, tot = 0;
+    for (const k of n.kids) { const s = layout(k, nx, cy, dir); cy += s + GAP; tot += s + GAP; }
+    sub = Math.max(sub, tot - GAP);
+  }
+  n.sub = sub;
+  bounds.l = Math.min(bounds.l, n.tx); bounds.r = Math.max(bounds.r, n.tx + W);
+  bounds.t = Math.min(bounds.t, y); bounds.b = Math.max(bounds.b, y + sub);
+  return sub;
+}
+function doLayout() { bounds = {l: 1e9, t: 1e9, r: -1e9, b: -1e9}; layout(P, -CG / 2, 0, -1); layout(V, CG / 2, 0, 1); }
+function fit() {
+  doLayout();
+  const m = 20, bw = bounds.r - bounds.l, bh = bounds.b - bounds.t;
+  zoom = Math.min((width - 2 * m) / bw, (height - 2 * m) / bh, 3);
+  panX = (width - bw * zoom) / 2 - bounds.l * zoom; panY = (height - bh * zoom) / 2 - bounds.t * zoom;
+}
+function setAll(n, f, top) { if (n.kids.length) { n.exp = top ? true : f; n.kids.forEach(k => setAll(k, f)); } if (!n.exp) resetInit(n); }
+function resetInit(n) { n.kids.forEach(k => { k.init = false; resetInit(k); }); }
+
+// ---------- p5 ----------
+function setup() {
+  const st = $('stage');
+  cnv = createCanvas(st.clientWidth, st.clientHeight); cnv.parent('stage');
+  pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
+  textFont('system-ui, sans-serif');
+  initData(); simulate(); fit(); setupInput();
+  $('yr').oninput = e => { year = +e.target.value; $('yl').textContent = year; simulate(); };
+  $('rt').oninput = e => { rate = e.target.value / 1000; $('rl').textContent = fmt(rate * 100, 1) + ' %'; simulate(); };
+  $('bAll').onclick = () => { setAll(P, true, true); setAll(V, true, true); fit(); };
+  $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); };
+  $('bFit').onclick = fit;
+}
+function windowResized() { const st = $('stage'); resizeCanvas(st.clientWidth, st.clientHeight); }
+
+function pick(n, wx, wy) {
+  let found = null;
+  if (wx >= n.x && wx <= n.x + W && wy >= n.y && wy <= n.y + n.h) found = n;
+  if (n.exp) for (const k of n.kids) { const f = pick(k, wx, wy); if (f) found = f; }
+  return found;
+}
+
+function draw() {
+  background(13, 14, 24);
+  doLayout();
+  const wx = (mx - panX) / zoom, wy = (my - panY) / zoom;
+  hover = (mx >= 0 && !(ptrs.size && moved)) ? (pick(P, wx, wy) || pick(V, wx, wy)) : null;
+  push(); translate(panX, panY); scale(zoom);
+  drawNode(P, -1); drawNode(V, 1);
+  pop();
+  showTip();
+}
+
+function drawNode(n, dir) {
+  if (!n.init) { const p = n.parent; n.x = p ? p.x : n.tx; n.y = p ? p.y : n.ty; n.h = 0; n.init = true; }
+  n.x += (n.tx - n.x) * 0.2; n.y += (n.ty - n.y) * 0.2; n.h += (n.th - n.h) * 0.2;
+  const rh = n.h * zoom;                       // skutečná výška na obrazovce = metrika detailu (LOD)
+  if (rh < 0.3) return;
+  const [r, g, b] = n.rgb, hv = hover === n;
+
+  if (rh < 5) { noStroke(); fill(r, g, b, 210); rect(n.x, n.y, W, n.h); }
+  else {
+    fill(r, g, b, hv ? 90 : 42); stroke(hv ? color(255) : color(r, g, b)); strokeWeight((hv ? 2 : 1) / zoom);
+    rect(n.x, n.y, W, n.h, Math.min(5, n.h / 3));
+  }
+  if (rh >= 17) {                              // text se kreslí v pixelech obrazovky, ne zvětšený
+    noStroke(); textAlign(LEFT, TOP); textSize(12.5 / zoom);
+    const pad = 8 / zoom, av = W - pad * 2 - (n.kids.length ? 14 / zoom : 0);
+    let l = n.name;
+    if (textWidth(l) > av) { while (l.length > 2 && textWidth(l + '…') > av) l = l.slice(0, -1); l += '…'; }
+    fill(236, 237, 250); text(l, n.x + pad, n.y + 6 / zoom);
+    if (rh >= 36) {
+      fill(r, g, b); textSize(11.5 / zoom);
+      text(fmt(n.val, n.val < 10 ? 1 : 0) + ' mld. · ' + fmt(n.val / n.root.val * 100, 1) + ' %', n.x + pad, n.y + 22 / zoom);
+    }
+    if (n.kids.length) { fill(255, 255, 255, 170); textAlign(RIGHT, TOP); textSize(12 / zoom); text(n.exp ? '▾' : '▸', n.x + W - 6 / zoom, n.y + 6 / zoom); }
+  }
+  if (n.exp && n.kids.length) {
+    const sx = dir > 0 ? n.x + W : n.x; let off = 0;
+    for (const c of n.kids) {
+      if (c.h * zoom >= 0.3) {                 // stuha (Sankey) od rodiče k potomkovi
+        const ex = dir > 0 ? c.x : c.x + W, m = (sx + ex) / 2, y0 = n.y + off, y1 = y0 + c.h, c0 = c.y, c1 = c.y + c.h;
+        noStroke(); fill(c.rgb[0], c.rgb[1], c.rgb[2], hover === c ? 130 : 62);
+        beginShape(); vertex(sx, y0); bezierVertex(m, y0, m, c0, ex, c0); vertex(ex, c1); bezierVertex(m, c1, m, y1, sx, y1); endShape(CLOSE);
+      }
+      off += c.h; drawNode(c, dir);
+    }
+  }
+}
+
+function showTip() {
+  const t = $('tip');
+  if (!hover) { t.style.display = 'none'; return; }
+  const n = hover, rows = [`<b>${n.name}</b>${fmt(n.val, 1)} mld. Kč`];
+  if (n.parent) rows.push(`<em>${fmt(n.val / n.parent.val * 100, 1)} % z „${n.parent.name}“</em>`);
+  rows.push(`<em>${fmt(n.val / n.root.val * 100, 1)} % z ${n.root === P ? 'příjmů' : 'výdajů'} celkem</em>`);
+  if (!n.kids.length && n.g) rows.push(`<em>Růst v modelu: ${n.g > 0 ? '+' : ''}${fmt(n.g * 100, 1)} % ročně</em>`);
+  if (n === debtNode) rows.push(`<em>Úrok ${fmt(rate * 100, 1)} % z dluhu ${fmt(debt, 0)} mld.</em>`);
+  if (n.kids.length) rows.push(`<em>${n.kids.length} podpoložek – klikni pro ${n.exp ? 'sbalení' : 'rozbalení'}</em>`);
+  t.innerHTML = rows.join(''); t.style.display = 'block';
+  t.style.left = Math.max(4, Math.min(mx + 16, width - t.offsetWidth - 4)) + 'px';
+  t.style.top = Math.max(4, Math.min(my + 16, height - t.offsetHeight - 4)) + 'px';
+}
+
+// ---------- ovládání (myš, dotyk i štípnutí přes pointer events) ----------
+function zoomAt(cx, cy, f) {
+  const nz = Math.min(14, Math.max(0.08, zoom * f)); f = nz / zoom;
+  panX = cx - (cx - panX) * f; panY = cy - (cy - panY) * f; zoom = nz;
+}
+function setupInput() {
+  const el = cnv.elt; el.style.touchAction = 'none';
+  const pos = e => { const r = el.getBoundingClientRect(); return {x: e.clientX - r.left, y: e.clientY - r.top}; };
+  el.addEventListener('pointerdown', e => {
+    el.setPointerCapture(e.pointerId); const p = pos(e); ptrs.set(e.pointerId, p); mx = p.x; my = p.y;
+    if (ptrs.size === 1) { moved = false; start = p; } else { moved = true; lastPinch = null; }
+  });
+  el.addEventListener('pointermove', e => {
+    const p = pos(e); mx = p.x; my = p.y;
+    if (!ptrs.has(e.pointerId)) return;
+    const old = ptrs.get(e.pointerId); ptrs.set(e.pointerId, p);
+    if (ptrs.size === 1) {
+      if (!moved && Math.hypot(p.x - start.x, p.y - start.y) < 6) return;
+      moved = true; panX += p.x - old.x; panY += p.y - old.y;
+    } else if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, c = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
+      if (lastPinch) { panX += c.x - lastPinch.c.x; panY += c.y - lastPinch.c.y; zoomAt(c.x, c.y, d / lastPinch.d); }
+      lastPinch = {d, c};
+    }
+  });
+  el.addEventListener('pointerup', e => {
+    const tap = ptrs.size === 1 && !moved, p = pos(e); ptrs.delete(e.pointerId); lastPinch = null;
+    if (tap) {
+      const n = pick(P, (p.x - panX) / zoom, (p.y - panY) / zoom) || pick(V, (p.x - panX) / zoom, (p.y - panY) / zoom);
+      if (n && n.kids.length) { n.exp = !n.exp; if (!n.exp) resetInit(n); }
+    }
+    if (!ptrs.size) moved = false;
+  });
+  el.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); if (!ptrs.size) moved = false; });
+  el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') mx = -1; });
+  el.addEventListener('wheel', e => {
+    e.preventDefault(); const p = pos(e);
+    zoomAt(p.x, p.y, Math.exp(-Math.max(-120, Math.min(120, e.deltaY)) * 0.0015));
+  }, {passive: false});
+}
+</script>
 </body>
 </html>
