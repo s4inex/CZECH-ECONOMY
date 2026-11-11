@@ -6,6 +6,17 @@
 <title>Interaktivní rozpočet ČR</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
 <style>
+
+  /* Ovládání částky */
+.donate-controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.donate-controls label { color: var(--tx); font-weight: 600; }
+.donate-controls input {
+  background: var(--bg); color: var(--tx); border: 1px solid var(--line); 
+  border-radius: 6px; padding: 6px 10px; width: 80px; font: inherit; 
+  text-align: center; accent-color: var(--acc);
+}
+.donate-controls input:focus { outline: none; border-color: var(--acc); }
+  
 /* Tlačítko pro podpoření */
 #bDonate { background: var(--acc); color: var(--bg); font-weight: 600; border-color: var(--acc); }
 #bDonate:hover { background: #b4befe; border-color: #b4befe; }
@@ -84,11 +95,14 @@ canvas{display:block}
     <h2>Podpořit projekt</h2>
     <p>Tento web dělám ve volném čase. Pokud vám přijde užitečný, můžete mi na jeho provoz a kávu poslat dobrovolný dar.</p>
     
-    <!-- Zde si ve vaší bance vygenerujte QR platbu, uložte ji jako obrázek qr.png a vložte k webu -->
+    <div class="donate-controls">
+      <label for="donAmt">Částka (Kč):</label>
+      <input type="number" id="donAmt" value="20" min="1" step="1">
+    </div>
+    
     <div class="qr-placeholder">
-      <img src="qr.png" alt="QR kód pro platbu" onerror="this.style.display='none'">
-      <!-- Pro případ, že obrázek zatím nemáte, zobrazíme aspoň číslo účtu -->
-      <p>Číslo účtu:<br><strong>123456789/0000</strong></p>
+      <img id="qrImg" src="" alt="QR kód se načítá...">
+      <p>Číslo účtu:<br><strong id="accNum">Načítám...</strong></p>
     </div>
     
     <p class="disclaimer">Jedná se o dobrovolný dar bez protiplnění. Děkuji!</p>
@@ -227,10 +241,25 @@ function setup() {
   $('bAll').onclick = () => { setAll(P, true, true); setAll(V, true, true); fit(); };
   $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); };
   $('bFit').onclick = fit;
+  // --- NASTAVENÍ ÚČTU PRO DARY ---
+  const myAccount = "275030807"; // Sem dejte své číslo účtu
+  const myBank = "0300";         // Sem dejte kód vaší banky
+  // -------------------------------
+
+  const updateQR = () => {
+    const amt = $('donAmt').value || 0; // Pokud uživatel pole vymaže, pošle se 0 (lze zadat v bance)
+    // Volání Paylibo API pro generování QR platby
+    $('qrImg').src = `https://api.paylibo.com/paylibo/generator/czech/image?accountNumber=${myAccount}&bankCode=${myBank}&amount=${amt}&currency=CZK&message=Dobrovolny+dar`;
+    $('accNum').textContent = `${myAccount}/${myBank}`;
+  };
+
   // Obsluha okna pro dary
-  $('bDonate').onclick = () => { $('donateModal').style.display = 'flex'; };
+  $('bDonate').onclick = () => { $('donateModal').style.display = 'flex'; updateQR(); };
   $('closeModal').onclick = () => { $('donateModal').style.display = 'none'; };
   $('donateModal').onclick = e => { if (e.target === $('donateModal')) $('donateModal').style.display = 'none'; };
+  
+  // Okamžitá aktualizace QR kódu při přepsání částky (událost input)
+  $('donAmt').oninput = updateQR;
 }
 function windowResized() { const st = $('stage'); resizeCanvas(st.clientWidth, st.clientHeight); }
 
