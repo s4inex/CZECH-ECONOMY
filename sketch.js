@@ -303,16 +303,24 @@ class Node {
       hoveredNode = this;
     }
     
+    // Stín
     noStroke();
     fill(0, 40);
     rect(this.dispX + 4, this.dispY + 4, this.dispW, this.dispH, 3);
     
+    // Obdélník s okrajem
     fill(isHovered ? color(255) : this.col);
     stroke(24, 24, 37);
     strokeWeight(1.5 / zoom);
     rect(this.dispX, this.dispY, this.dispW, this.dispH, 3);
     
-    if (this.dispH * zoom > 18) {
+    // OPRAVA 1: Zabrání tomu, aby byl text tučný / ohraničený
+    noStroke(); 
+    
+    // OPRAVA 2: Bezpečnější limity pro výšku bloku
+    let renderedHeight = this.dispH * zoom;
+    
+    if (renderedHeight > 25) { 
       fill(24, 24, 37); 
       textAlign(LEFT, TOP);
       textSize(11);
@@ -323,7 +331,8 @@ class Node {
       }
       text(label, this.dispX + 6, this.dispY + 4);
       
-      if (this.dispH * zoom > 35) {
+      // Podnadpis s hodnotou zobrazíme, jen pokud je blok dostatečně vysoký
+      if (renderedHeight > 45) {
         textSize(10);
         text(`${formatMoney(this.targetVal)} mld.`, this.dispX + 6, this.dispY + 18);
         if (this.children.length > 0) {
@@ -332,6 +341,7 @@ class Node {
       }
     }
     
+    // Kreslení spojovacích čar
     if (this.expanded && this.children.length > 0) {
       stroke(200, 100);
       strokeWeight(1 / zoom);
