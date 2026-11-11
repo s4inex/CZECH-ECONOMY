@@ -6,6 +6,30 @@
 <title>Interaktivní rozpočet ČR</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
 <style>
+/* Tlačítko pro podpoření */
+#bDonate { background: var(--acc); color: var(--bg); font-weight: 600; border-color: var(--acc); }
+#bDonate:hover { background: #b4befe; border-color: #b4befe; }
+
+/* Vyskakovací okno (Modal) */
+#donateModal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100;
+  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+}
+.modal-content {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 24px 24px 16px; max-width: 320px; text-align: center; position: relative;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.modal-content h2 { margin-top: 0; font-size: 18px; color: var(--acc); }
+.modal-content p { font-size: 14px; color: var(--tx); line-height: 1.5; margin-bottom: 16px; }
+.qr-placeholder { background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 16px; }
+.qr-placeholder img { max-width: 150px; border-radius: 8px; }
+.disclaimer { font-size: 11px !important; color: var(--mut) !important; margin-bottom: 0; }
+#closeModal {
+  position: absolute; right: 12px; top: 8px; font-size: 24px; line-height: 1; 
+  cursor: pointer; color: var(--mut); transition: color 0.2s;
+}
+#closeModal:hover { color: var(--bad); }
 :root{color-scheme:dark;--bg:#0d0e18;--panel:#151729;--line:#2a2d4a;--tx:#e6e7f7;--mut:#8b8fb5;--ok:#a6e3a1;--bad:#f38ba8;--acc:#89b4fa;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box}
@@ -40,6 +64,7 @@ canvas{display:block}
     <button id="bAll">Rozbalit vše</button>
     <button id="bNone">Sbalit</button>
     <button id="bFit">Celý přehled</button>
+    <button id="bDonate">❤️ Podpořit</button>
   </div>
 </header>
 <div id="kpi">
@@ -53,7 +78,22 @@ canvas{display:block}
   <div id="tip"></div>
   <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · kolečko / štípnutí = zoom (čím blíž, tím víc detailů) · Čísla v mld. Kč jsou zaokrouhlené orientační odhady, ne oficiální data; růst je zjednodušený model.</div>
 </div>
-
+<div id="donateModal" style="display:none;">
+  <div class="modal-content">
+    <span id="closeModal">&times;</span>
+    <h2>Podpořit projekt</h2>
+    <p>Tento web dělám ve volném čase. Pokud vám přijde užitečný, můžete mi na jeho provoz a kávu poslat dobrovolný dar.</p>
+    
+    <!-- Zde si ve vaší bance vygenerujte QR platbu, uložte ji jako obrázek qr.png a vložte k webu -->
+    <div class="qr-placeholder">
+      <img src="qr.png" alt="QR kód pro platbu" onerror="this.style.display='none'">
+      <!-- Pro případ, že obrázek zatím nemáte, zobrazíme aspoň číslo účtu -->
+      <p>Číslo účtu:<br><strong>123456789/0000</strong></p>
+    </div>
+    
+    <p class="disclaimer">Jedná se o dobrovolný dar bez protiplnění. Děkuji!</p>
+  </div>
+</div>
 <script>
 // ---------- konstanty a stav ----------
 const W = 190, CG = 64, GAP = 4, SC = 0.45;      // šířka bloku, mezera sloupců, mezera řádků, mld. Kč -> px
@@ -187,6 +227,10 @@ function setup() {
   $('bAll').onclick = () => { setAll(P, true, true); setAll(V, true, true); fit(); };
   $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); };
   $('bFit').onclick = fit;
+  // Obsluha okna pro dary
+  $('bDonate').onclick = () => { $('donateModal').style.display = 'flex'; };
+  $('closeModal').onclick = () => { $('donateModal').style.display = 'none'; };
+  $('donateModal').onclick = e => { if (e.target === $('donateModal')) $('donateModal').style.display = 'none'; };
 }
 function windowResized() { const st = $('stage'); resizeCanvas(st.clientWidth, st.clientHeight); }
 
