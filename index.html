@@ -6,23 +6,27 @@
 <title>Interaktivní rozpočet ČR</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
 <style>
+:root{color-scheme:dark;--bg:#0d0e18;--panel:#151729;--line:#2a2d4a;--tx:#e6e7f7;--mut:#8b8fb5;--ok:#a6e3a1;--bad:#f38ba8;--acc:#89b4fa;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 
-  /* Ovládání částky */
+/* Ovládání částky */
 .donate-controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
 .donate-controls label { color: var(--tx); font-weight: 600; }
 .donate-controls input {
-  background: var(--bg); color: var(--tx); border: 1px solid var(--line); 
-  border-radius: 6px; padding: 6px 10px; width: 80px; font: inherit; 
+  background: var(--bg); color: var(--tx); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 10px; width: 80px; font: inherit;
   text-align: center; accent-color: var(--acc);
 }
 .donate-controls input:focus { outline: none; border-color: var(--acc); }
-  
-/* Tlačítko pro podpoření */
+
+/* Tlačítka */
 #bDonate { background: var(--acc); color: var(--bg); font-weight: 600; border-color: var(--acc); }
 #bDonate:hover { background: #b4befe; border-color: #b4befe; }
+#bK { border-color: var(--bad); }
+#bKT.off { opacity: .5; }
 
-/* Vyskakovací okno (Modal) */
-#donateModal {
+/* Vyskakovací okna (Modal) */
+#donateModal, #kauzyModal {
   position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100;
   display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
 }
@@ -36,13 +40,21 @@
 .qr-placeholder { background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 16px; }
 .qr-placeholder img { max-width: 150px; border-radius: 8px; }
 .disclaimer { font-size: 11px !important; color: var(--mut) !important; margin-bottom: 0; }
-#closeModal {
-  position: absolute; right: 12px; top: 8px; font-size: 24px; line-height: 1; 
+#closeModal, #closeK {
+  position: absolute; right: 12px; top: 8px; font-size: 24px; line-height: 1;
   cursor: pointer; color: var(--mut); transition: color 0.2s;
 }
-#closeModal:hover { color: var(--bad); }
-:root{color-scheme:dark;--bg:#0d0e18;--panel:#151729;--line:#2a2d4a;--tx:#e6e7f7;--mut:#8b8fb5;--ok:#a6e3a1;--bad:#f38ba8;--acc:#89b4fa;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+#closeModal:hover, #closeK:hover { color: var(--bad); }
+
+/* Panel kauz */
+#kauzyBox { max-width: 460px; max-height: 85vh; overflow-y: auto; text-align: left; }
+.kauza { border-top: 1px solid var(--line); padding: 10px 0; font-size: 13px; line-height: 1.45; }
+.kauza:first-of-type { border-top: 0; }
+.kauza h3 { margin: 0 0 2px; font-size: 14px; color: var(--bad); }
+.kauza .meta { color: var(--mut); font-size: 12px; }
+.kauza p { font-size: 13px !important; margin: 4px 0 !important; }
+.kauza a { color: var(--acc); }
+
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 body{display:flex;flex-direction:column}
@@ -60,7 +72,7 @@ button:hover{border-color:var(--acc)}
 #kpi span{font-size:17px;font-weight:600}
 #stage{flex:1;min-height:0;position:relative}
 canvas{display:block}
-#tip{position:absolute;display:none;pointer-events:none;background:rgba(20,21,36,.96);border:1px solid var(--line);border-radius:8px;padding:8px 11px;max-width:260px;box-shadow:0 6px 24px #000a;font-size:13px}
+#tip{position:absolute;display:none;pointer-events:none;background:rgba(20,21,36,.96);border:1px solid var(--line);border-radius:8px;padding:8px 11px;max-width:280px;box-shadow:0 6px 24px #000a;font-size:13px}
 #tip b{display:block;margin-bottom:2px}
 #tip em{color:var(--mut);font-style:normal;font-size:12px;display:block}
 #hint{position:absolute;left:10px;bottom:8px;right:10px;font-size:11px;color:var(--mut);pointer-events:none;text-shadow:0 0 6px var(--bg),0 0 6px var(--bg)}
@@ -69,12 +81,14 @@ canvas{display:block}
 <body>
 <header>
   <h1>ROZPOČET ČR</h1>
-  <div class="ctl"><label>Rok: <b id="yl">2024</b></label><input type="range" id="yr" min="2024" max="2050" value="2024"></div>
+  <div class="ctl"><label>Rok: <b id="yl">2024</b></label><input type="range" id="yr" min="2020" max="2050" value="2024"></div>
   <div class="ctl"><label>Úrok z dluhu: <b id="rl">3,0 %</b></label><input type="range" id="rt" min="15" max="70" value="30"></div>
   <div id="btns">
     <button id="bAll">Rozbalit vše</button>
     <button id="bNone">Sbalit</button>
     <button id="bFit">Celý přehled</button>
+    <button id="bKT" title="Zobrazit/skrýt odznaky ⚠ u položek">⚠ Odznaky</button>
+    <button id="bK">⚠ Kauzy</button>
     <button id="bDonate">❤️ Podpořit</button>
   </div>
 </header>
@@ -87,37 +101,90 @@ canvas{display:block}
 </div>
 <div id="stage">
   <div id="tip"></div>
-  <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · kolečko / štípnutí = zoom (čím blíž, tím víc detailů) · Čísla v mld. Kč jsou zaokrouhlené orientační odhady, ne oficiální data; růst je zjednodušený model.</div>
+  <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · kolečko / štípnutí = zoom · ⚠ = navázaná kauza (najetím myši detail, tlačítko „Kauzy“ = zdroje). 2020–2023: součty skutečnosti dle MF ČR (2022 dopočteno), vnitřní členění je přeškálované z roku 2024. Čísla v mld. Kč jsou orientační odhady, ne oficiální data; růst je zjednodušený model.</div>
 </div>
+
 <div id="donateModal" style="display:none;">
   <div class="modal-content">
     <span id="closeModal">&times;</span>
     <h2>Podpořit projekt</h2>
     <p>Tento web dělám ve volném čase. Pokud vám přijde užitečný, můžete mi na jeho provoz a kávu poslat dobrovolný dar.</p>
-    
+
     <div class="donate-controls">
       <label for="donAmt">Částka (Kč):</label>
       <input type="number" id="donAmt" value="20" min="1" step="1">
     </div>
-    
+
     <div class="qr-placeholder">
       <img id="qrImg" src="" alt="QR kód se načítá...">
       <p>Číslo účtu:<br><strong id="accNum">Načítám...</strong></p>
     </div>
-    
+
     <p class="disclaimer">Jedná se o dobrovolný dar bez protiplnění. Děkuji!</p>
   </div>
 </div>
+
+<div id="kauzyModal" style="display:none;">
+  <div class="modal-content" id="kauzyBox">
+    <span id="closeK">&times;</span>
+    <h2>Kauzy navázané na rozpočet</h2>
+    <div id="kList"></div>
+    <p class="disclaimer">Stav k 12. 11. 2026 podle zpravodajských zdrojů, před dalším šířením ověřte u aktuálních rozhodnutí soudů. Dokud rozhodnutí není pravomocné, platí presumpce neviny. Výběr není úplný: zahrnuje jen případy s vazbou na peněžní toky státu, krajů či měst, napříč stranami.</p>
+  </div>
+</div>
+
 <script>
 // ---------- konstanty a stav ----------
 const W = 190, CG = 64, GAP = 4, SC = 0.45;      // šířka bloku, mezera sloupců, mezera řádků, mld. Kč -> px
 const BASE_DEBT = 3200, BASE_GDP = 7800, GDP_G = 0.045;
 let P, V, debtNode, year = 2024, rate = 0.03, debt = BASE_DEBT, gdp = BASE_GDP;
 let panX = 0, panY = 0, zoom = 1, mx = -1, my = -1, hover = null, bounds, cnv;
+let showK = true;
 const ptrs = new Map(); let moved = false, start = null, lastPinch = null;
 const $ = id => document.getElementById(id);
 const fmt = (v, d = 1) => new Intl.NumberFormat('cs-CZ', {minimumFractionDigits: d, maximumFractionDigits: d}).format(v);
 const rgbOf = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
+
+// ---------- historická data (skutečnost státního rozpočtu, mld. Kč) ----------
+// Zdroj: MF ČR, státní závěrečné účty. Rok 2022: výdaje dopočteny z meziročního růstu 2023 (+218 mld.),
+// příjmy ze schodku 360,4 mld. -> označeno jako odhad. Rozpad na podpoložky za minulé roky tu není,
+// strom z roku 2024 se proporcionálně přeškáluje na skutečné součty.
+const HIST = {
+  2020: {p: 1475.5, v: 1842.9},
+  2021: {p: 1487.2, v: 1906.9},
+  2022: {p: 1624,   v: 1985,   approx: true},
+  2023: {p: 1914.1, v: 2202.6}
+};
+
+// ---------- kauzy napojené na položky rozpočtu ----------
+// Stav k 12. 11. 2026. U každé kauzy je uveden stav řízení; neuvedené = nerozhodnuto.
+// nodes = názvy položek stromu, ke kterým se kauza váže (odznak ⚠ se propaguje i na rodiče).
+const KAUZY = [
+  { title: 'Čapí hnízdo (dotace z fondů EU)',
+    who: 'Andrej Babiš (ANO), Jana Nagyová (ANO)', amount: 'dotace 50 mil. Kč', nodes: ['Strukturální a kohezní fondy'],
+    status: 'Nagyová: Městský soud ji v květnu 2026 uznal vinnou (podmínka a peněžitý trest), Vrchní soud trest potvrdil. Babiš: Sněmovna ho v březnu 2026 nevydala k trestnímu stíhání, jeho část řízení je přerušena. Oba vinu odmítají, Babiš označuje proces za politický.',
+    url: 'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704' },
+  { title: 'Střet zájmů a dotace holdingu Agrofert',
+    who: 'Andrej Babiš (ANO)', amount: 'min. 155 mil. Kč z projektů kritizovaných auditem EK', nodes: ['Společná zemědělská politika', 'Strukturální a kohezní fondy'],
+    status: 'Audit Evropské komise shledal střet zájmů. Česko nemuselo nic vracet do Bruselu, ale část projektů již stát proplatil z vlastních peněz. Babiš audit označuje za účelový, Agrofert nesouhlasí. V roce 2026 Komise dál žádá záruky, že dotace pro holding zůstanou zmrazené.',
+    url: 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-ujistili-eu-ze-dotace-pro-agrofert-jsou-zmrazeny-vzapeti-miliardy-uvolnili-305430' },
+  { title: 'Kauza Rath (zakázky kraje a nemocnic)',
+    who: 'David Rath (ČSSD, tehdy středočeský hejtman) a další', amount: 'zakázky přes 700 mil. Kč', nodes: ['Dotace krajům', 'Dotace nemocnicím'],
+    status: 'Pravomocně odsouzen v první větvi (7 let), ve druhé větvi trest prodloužen na 8 let a peněžitý trest 18 mil. Kč; Ústavní soud jeho stížnosti odmítl. Stavební firmě Metrostav soud zakázal na 3 roky účast v zakázkách. Rath proces označuje za zpolitizovaný.',
+    url: 'https://ct24.ceskatelevize.cz/david-rath/' },
+  { title: 'Trafiky pro poslance ODS a Nagygate (2013)',
+    who: 'Petr Nečas (ODS), Jana Nečasová (dříve Nagyová), Roman Boček', amount: 'lukrativní posty ve státních firmách výměnou za hlasy', nodes: ['Dividendy a odvody státních podniků'],
+    status: 'Trafiky: Nečas pravomocně odsouzen (podmínka 2,5 roku, pokuta 1 mil. Kč), Nejvyšší soud dovolání odmítl, Ústavní soud odmítl stížnost Bočka. Kauza přispěla k pádu vlády v roce 2013. Větev se zneužitím Vojenského zpravodajství: Nečasová dostala podmínku, zbytek trestu jí prezident Zeman prominul.',
+    url: 'https://www.seznamzpravy.cz/clanek/domaci-zivot-v-cesku-kauza-trafik-pro-exposlance-skoncila-ustavni-soud-odmitl-stiznost-303905' },
+  { title: 'Dozimetr (zakázky pražského dopravního podniku)',
+    who: 'Petr Hlubuček (dříve STAN), Michal Redl (podnikatel) a další', amount: 'korupce kolem zakázek DPP (peníze města Prahy)', nodes: ['Dotace obcím'],
+    status: 'Probíhá hlavní líčení, obžalováno je několik lidí. Redl a Hlubuček vinu odmítají (žalobce navrhl 10 a 8 let), část podnikatelů se přiznala a dostala pokuty dohodou. V roce 2022 kvůli kontaktům s Redlem skončil ministr školství Petr Gazdík (STAN). Pozn.: jde o městské, ne státní peníze.',
+    url: 'https://ct24.ceskatelevize.cz/tema/michal-redl-1705' },
+  { title: 'Bitcoinový dar ministerstvu spravedlnosti',
+    who: 'Pavel Blažek (ODS), Radomír Daňhel, Kárim Titz, Tomáš Jiřikovský', amount: '468 BTC, téměř 1 mld. Kč; 235 BTC vydraženo za 446,6 mil. Kč', nodes: ['Spravedlnost', 'Ostatní nedaňové'],
+    status: 'Obžalováni jsou čtyři lidé včetně exministra Blažka a dárce Jiřikovského, všichni vinu popírají; řízení před soudem zatím neskončilo. Blažek po vypuknutí kauzy v roce 2025 rezignoval na funkci ministra.',
+    url: 'https://ct24.ceskatelevize.cz/tema/tomas-jirikovsky-99489' }
+];
 
 // ---------- datový model ----------
 class Node {
@@ -126,6 +193,7 @@ class Node {
     this.root = parent ? parent.root : this;
     this.kids = []; this.exp = false; this.base = 0; this.sim = 0; this.val = 0; this.g = 0;
     this.x = this.y = this.h = 0; this.tx = this.ty = this.th = 0; this.sub = 0; this.init = false;
+    this.kauzy = null;
   }
   reset() { this.sim = this.base; this.kids.forEach(k => k.reset()); }
   grow() { this.kids.length ? this.kids.forEach(k => k.grow()) : this.sim *= 1 + this.g; }
@@ -185,11 +253,32 @@ function initData() {
       ['Ústavní orgány a úřady', 8, .02], ['Rezervy', 42, .02]], 0, '#b4befe']
   ]], null, '#f38ba8', 0);
   P.exp = V.exp = true;
+  attachKauzy();
 }
 
-// ---------- simulace (opravené pořadí: úrok se počítá z dluhu na začátku roku) ----------
+// Napojení kauz na uzly; odznak se propaguje i na rodiče, takže je vidět i na sbalených blocích.
+function attachKauzy() {
+  const by = {}, idx = n => { by[n.name] = n; n.kids.forEach(idx); };
+  idx(P); idx(V);
+  KAUZY.forEach(k => k.nodes.forEach(nm => {
+    for (let a = by[nm]; a; a = a.parent) {
+      a.kauzy = a.kauzy || [];
+      if (!a.kauzy.includes(k)) a.kauzy.push(k);
+    }
+  }));
+}
+
+// ---------- simulace (úrok se počítá z dluhu na začátku roku) ----------
+function scaleTo(n, f) { n.kids.length ? n.kids.forEach(k => scaleTo(k, f)) : n.sim *= f; }
 function simulate() {
   P.reset(); V.reset(); debt = BASE_DEBT; gdp = BASE_GDP; let prev = 0;
+  if (year < 2024) {                          // historie: přeškálování stromu na skutečné součty
+    const h = HIST[year]; P.total(); V.total();
+    scaleTo(P, h.p / P.val); scaleTo(V, h.v / V.val);
+    for (let y = 2023; y >= year; y--) debt += HIST[y].p - HIST[y].v;   // dluh zpětně ze sald
+    gdp = NaN;                                // HDP za minulé roky v modelu není
+    P.total(); V.total(); updateKpi(); return;
+  }
   for (let y = 2024; y <= year; y++) {
     if (y > 2024) { P.grow(); V.grow(); gdp *= 1 + GDP_G; debt -= prev; }
     debtNode.sim = debt * rate;
@@ -201,7 +290,8 @@ function updateKpi() {
   const s = P.val - V.val;
   $('kP').textContent = fmt(P.val, 0) + ' mld.'; $('kV').textContent = fmt(V.val, 0) + ' mld.';
   $('kS').textContent = fmt(s, 0) + ' mld.'; $('kS').style.color = s >= 0 ? 'var(--ok)' : 'var(--bad)';
-  $('kD').textContent = fmt(debt, 0) + ' mld.'; $('kG').textContent = fmt(debt / gdp * 100, 1) + ' %';
+  $('kD').textContent = fmt(debt, 0) + ' mld.';
+  $('kG').textContent = isFinite(gdp) ? fmt(debt / gdp * 100, 1) + ' %' : '—';
 }
 
 // ---------- rozložení (každý podstrom má vlastní výšku, takže se bloky nepřekrývají) ----------
@@ -236,11 +326,23 @@ function setup() {
   pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
   textFont('system-ui, sans-serif');
   initData(); simulate(); fit(); setupInput();
-  $('yr').oninput = e => { year = +e.target.value; $('yl').textContent = year; simulate(); };
+  $('yr').oninput = e => { year = +e.target.value; $('yl').textContent = year + (HIST[year] && HIST[year].approx ? ' (odhad)' : ''); simulate(); };
   $('rt').oninput = e => { rate = e.target.value / 1000; $('rl').textContent = fmt(rate * 100, 1) + ' %'; simulate(); };
   $('bAll').onclick = () => { setAll(P, true, true); setAll(V, true, true); fit(); };
   $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); };
   $('bFit').onclick = fit;
+
+  // --- Kauzy: seznam se zdroji + přepínač odznaků ---
+  $('kList').innerHTML = KAUZY.map(k =>
+    `<div class="kauza"><h3>${k.title}</h3>
+     <div class="meta">${k.who} · ${k.amount}</div>
+     <p>${k.status}</p>
+     <div class="meta">Položky: ${k.nodes.join(', ')} · <a href="${k.url}" target="_blank" rel="noopener">zdroj</a></div></div>`).join('');
+  $('bK').onclick = () => { $('kauzyModal').style.display = 'flex'; };
+  $('closeK').onclick = () => { $('kauzyModal').style.display = 'none'; };
+  $('kauzyModal').onclick = e => { if (e.target === $('kauzyModal')) $('kauzyModal').style.display = 'none'; };
+  $('bKT').onclick = () => { showK = !showK; $('bKT').classList.toggle('off', !showK); };
+
   // --- NASTAVENÍ ÚČTU PRO DARY ---
   const myAccount = "275030807"; // Sem dejte své číslo účtu
   const myBank = "0300";         // Sem dejte kód vaší banky
@@ -257,7 +359,7 @@ function setup() {
   $('bDonate').onclick = () => { $('donateModal').style.display = 'flex'; updateQR(); };
   $('closeModal').onclick = () => { $('donateModal').style.display = 'none'; };
   $('donateModal').onclick = e => { if (e.target === $('donateModal')) $('donateModal').style.display = 'none'; };
-  
+
   // Okamžitá aktualizace QR kódu při přepsání částky (událost input)
   $('donAmt').oninput = updateQR;
 }
@@ -287,6 +389,7 @@ function drawNode(n, dir) {
   const rh = n.h * zoom;                       // skutečná výška na obrazovce = metrika detailu (LOD)
   if (rh < 0.3) return;
   const [r, g, b] = n.rgb, hv = hover === n;
+  const hasK = showK && n.kauzy;
 
   if (rh < 5) { noStroke(); fill(r, g, b, 210); rect(n.x, n.y, W, n.h); }
   else {
@@ -295,7 +398,7 @@ function drawNode(n, dir) {
   }
   if (rh >= 17) {                              // text se kreslí v pixelech obrazovky, ne zvětšený
     noStroke(); textAlign(LEFT, TOP); textSize(12.5 / zoom);
-    const pad = 8 / zoom, av = W - pad * 2 - (n.kids.length ? 14 / zoom : 0);
+    const pad = 8 / zoom, av = W - pad * 2 - (n.kids.length ? 14 / zoom : 0) - (hasK ? 26 / zoom : 0);
     let l = n.name;
     if (textWidth(l) > av) { while (l.length > 2 && textWidth(l + '…') > av) l = l.slice(0, -1); l += '…'; }
     fill(236, 237, 250); text(l, n.x + pad, n.y + 6 / zoom);
@@ -304,6 +407,10 @@ function drawNode(n, dir) {
       text(fmt(n.val, n.val < 10 ? 1 : 0) + ' mld. · ' + fmt(n.val / n.root.val * 100, 1) + ' %', n.x + pad, n.y + 22 / zoom);
     }
     if (n.kids.length) { fill(255, 255, 255, 170); textAlign(RIGHT, TOP); textSize(12 / zoom); text(n.exp ? '▾' : '▸', n.x + W - 6 / zoom, n.y + 6 / zoom); }
+    if (hasK) {                                // odznak kauzy: ⚠ + počet navázaných kauz
+      fill(243, 139, 168); textAlign(RIGHT, TOP); textSize(12 / zoom);
+      text('⚠' + n.kauzy.length, n.x + W - (n.kids.length ? 22 : 6) / zoom, n.y + 6 / zoom);
+    }
   }
   if (n.exp && n.kids.length) {
     const sx = dir > 0 ? n.x + W : n.x; let off = 0;
@@ -327,6 +434,7 @@ function showTip() {
   if (!n.kids.length && n.g) rows.push(`<em>Růst v modelu: ${n.g > 0 ? '+' : ''}${fmt(n.g * 100, 1)} % ročně</em>`);
   if (n === debtNode) rows.push(`<em>Úrok ${fmt(rate * 100, 1)} % z dluhu ${fmt(debt, 0)} mld.</em>`);
   if (n.kids.length) rows.push(`<em>${n.kids.length} podpoložek – klikni pro ${n.exp ? 'sbalení' : 'rozbalení'}</em>`);
+  if (showK && n.kauzy) n.kauzy.forEach(k => rows.push(`<em style="color:var(--bad)">⚠ ${k.title}: ${k.who}</em>`));
   t.innerHTML = rows.join(''); t.style.display = 'block';
   t.style.left = Math.max(4, Math.min(mx + 16, width - t.offsetWidth - 4)) + 'px';
   t.style.top = Math.max(4, Math.min(my + 16, height - t.offsetHeight - 4)) + 'px';
