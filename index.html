@@ -2,645 +2,283 @@
 <html lang="cs">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<title>Interaktivní rozpočet ČR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Státní rozpočet ČR – interaktivní analýza</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
-:root{color-scheme:dark;--bg:#0d0e18;--panel:#151729;--line:#2a2d4a;--tx:#e6e7f7;--mut:#8b8fb5;--ok:#a6e3a1;--bad:#f38ba8;--acc:#89b4fa;
-box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-
+:root{color-scheme:dark;--bg:#0b0c15;--pn:#14162a;--ln:#262a48;--tx:#e8e9f8;--mu:#8e92b8;--ok:#a6e3a1;--bad:#f38ba8;--ac:#89b4fa;--wr:#f9e2af;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 body{display:flex;flex-direction:column}
-
-/* Hlavička */
-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: nowrap; }
-h1 { font-size: 16px; margin: 0; letter-spacing: .04em; white-space: nowrap; }
-.ctl { display: flex; flex-direction: column; font-size: 12px; color: var(--mut); }
-.ctl b { color: var(--tx); }
-.year-ctl { flex: 1; min-width: 100px; max-width: 300px; margin: 0 auto; }
-input[type=range] { width: 100%; accent-color: var(--acc); min-height: 24px; }
-
-/* Tlačítka */
-button { background: #1f2240; color: var(--tx); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-button:hover { border-color: var(--acc); }
-#btns { display: flex; gap: 6px; flex-wrap: nowrap; }
-#bKauzyModalBtn { border-color: var(--bad); color: var(--bad); }
-#bSettings { background: transparent; border-color: transparent; }
-#bSettings:hover { background: rgba(255,255,255,0.05); }
-#bDonate { background: var(--acc); color: var(--bg); font-weight: 600; border-color: var(--acc); }
-#bDonate:hover { background: #b4befe; border-color: #b4befe; }
-
-/* KPI lišta */
-#kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); }
-#kpi div { background: var(--bg); padding: 4px 10px; }
-#kpi small { display: block; color: var(--mut); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
-#kpi span { font-size: 15px; font-weight: 600; }
-
-/* Canvas oblast */
-#stage { flex: 1; min-height: 0; position: relative; }
-canvas { display: block; }
-#tip { position: absolute; display: none; pointer-events: none; background: rgba(20,21,36,.96); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; max-width: 280px; box-shadow: 0 6px 24px #000a; font-size: 13px; z-index: 50; }
-#tip b { display: block; margin-bottom: 2px; }
-#tip em { color: var(--mut); font-style: normal; font-size: 12px; display: block; }
-#hint { position: absolute; left: 10px; bottom: 8px; right: 10px; font-size: 11px; color: var(--mut); pointer-events: none; text-shadow: 0 0 6px var(--bg), 0 0 6px var(--bg); }
-
-/* Vyskakovací okna (Modals) */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-.modal-content { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px; width: 90vw; max-width: 360px; max-height: 90vh; overflow-y: auto; text-align: center; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-.modal-content h2 { margin-top: 0; font-size: 18px; color: var(--acc); margin-bottom: 20px; }
-.modal-content p { font-size: 14px; color: var(--tx); line-height: 1.5; margin-bottom: 16px; }
-.close-btn { position: absolute; right: 16px; top: 12px; font-size: 28px; line-height: 1; cursor: pointer; color: var(--mut); transition: color 0.2s; }
-.close-btn:hover { color: var(--bad); }
-
-/* Nastavení prvky */
-.setting-group { margin-bottom: 20px; text-align: left; }
-.setting-group label { display: block; margin-bottom: 6px; color: var(--mut); font-size: 13px; }
-.setting-group b { color: var(--tx); font-size: 14px; }
-.toggle-group { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 8px 0; }
-.toggle-group label { margin-bottom: 0; cursor: pointer; color: var(--tx); font-size: 14px; font-weight: 500; }
-.toggle-group input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--acc); cursor: pointer; margin: 0; }
-.divider { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
-.action-buttons { display: flex; flex-direction: column; gap: 10px; }
-.action-buttons button { width: 100%; padding: 12px; font-weight: 600; justify-content: center; }
-
-/* Dary okno */
-.donate-controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
-.donate-controls label { color: var(--tx); font-weight: 600; }
-.donate-controls input { background: var(--bg); color: var(--tx); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; width: 90px; font: inherit; text-align: center; accent-color: var(--acc); }
-.donate-controls input:focus { outline: none; border-color: var(--acc); }
-.qr-placeholder { background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 16px; }
-.qr-placeholder img { max-width: 150px; border-radius: 8px; }
-.disclaimer { font-size: 11px !important; color: var(--mut) !important; margin-bottom: 0; }
-
-/* Panel kauz */
-#kauzyBox { max-width: 820px; width: 94vw; max-height: 88vh; text-align: left; }
-.kbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
-.kbar input { flex: 1; min-width: 140px; background: var(--bg); color: var(--tx); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; }
-.chip { padding: 6px 12px; font-size: 13px; border-radius: 999px; }
-.chip.on { background: var(--acc); color: var(--bg); border-color: var(--acc); }
-#kList { max-height: calc(88vh - 160px); overflow-y: auto; padding-right: 4px; }
-.kauza { border-top: 1px solid var(--line); padding: 16px 0; font-size: 13px; line-height: 1.45; }
-.kauza h3 { margin: 0 0 4px; font-size: 16px; color: var(--bad); }
-.kauza .tag { font-size: 11px; font-weight: 400; color: var(--mut); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; margin-left: 8px; vertical-align: middle; }
-.kauza .meta { color: var(--mut); font-size: 12px; }
-.kauza p { font-size: 13.5px !important; margin: 8px 0 !important; }
-.kauza table { border-collapse: collapse; width: 100%; margin: 8px 0; }
-.kauza td { border-top: 1px solid var(--line); padding: 6px 8px; vertical-align: top; font-size: 13px; }
-.kauza td:first-child { color: var(--mut); width: 36%; }
-.kauza td:last-child { color: var(--tx); }
-.kauza details { margin: 6px 0; }
-.kauza summary { cursor: pointer; color: var(--acc); font-size: 13px; padding: 4px 0; }
-.kauza ul { margin: 6px 0 6px 20px; padding: 0; font-size: 13px; }
-.kauza a { color: var(--acc); }
-
-/* Responzivní mobilní zobrazení */
-@media (max-width: 600px) {
-  h1 { font-size: 14px; display: none; }
-  #btns button .btn-text { display: none; }
-  #btns button { padding: 10px; font-size: 18px; }
-  
-  /* Horizontální scroll pro KPI na malých displejích */
-  #kpi {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 2px;
-  }
-  #kpi div {
-    flex: 0 0 auto;
-    min-width: 120px;
-    scroll-snap-align: start;
-    border-right: 1px solid var(--line);
-  }
-
-  /* Spodní panel místo malého tooltipu na Canvasu (Bottom Sheet) */
-  #tip {
-    position: fixed;
-    top: auto !important;
-    left: 0 !important;
-    bottom: 0 !important;
-    right: 0 !important;
-    width: 100%;
-    max-width: none;
-    border-radius: 16px 16px 0 0;
-    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
-    box-shadow: 0 -8px 32px rgba(0,0,0,0.8);
-    font-size: 15px;
-    background: rgba(20,21,36,0.98);
-    backdrop-filter: blur(8px);
-    z-index: 100;
-  }
-  #tip b { font-size: 17px; margin-bottom: 6px; }
-  #tip em { font-size: 14px; margin-bottom: 4px; line-height: 1.4; }
+header{display:flex;align-items:center;gap:16px;padding:10px 16px;background:var(--pn);border-bottom:1px solid var(--ln)}
+h1{font-size:16px;margin:0;white-space:nowrap}h1 small{display:block;font-size:11px;font-weight:400;color:var(--mu)}
+.yr{flex:1;max-width:520px;margin-left:auto}.yr label{display:flex;justify-content:space-between;font-size:12px;color:var(--mu)}.yr b{color:var(--tx);font-size:15px}
+input[type=range]{width:100%;accent-color:var(--ac);min-height:26px;margin:0}
+#kpi{display:flex;overflow-x:auto;gap:1px;background:var(--ln);border-bottom:1px solid var(--ln);scrollbar-width:none}
+#kpi div{flex:1 0 118px;background:var(--bg);padding:6px 12px}
+#kpi small{display:block;color:var(--mu);font-size:10px;text-transform:uppercase;letter-spacing:.05em}#kpi span{font-size:16px;font-weight:650}
+#main{flex:1;min-height:0;display:grid;grid-template-columns:1fr 410px;grid-template-rows:auto 1fr}
+#stage{grid-column:1;grid-row:1/3;position:relative;min-height:0;min-width:0}
+canvas{display:block}
+#tabs{grid-column:2;grid-row:1;display:flex;background:var(--pn);border-left:1px solid var(--ln);border-bottom:1px solid var(--ln)}
+#tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;color:var(--mu);padding:11px 4px;font:inherit;cursor:pointer}
+#tabs button.on{color:var(--tx);border-color:var(--ac)}#tabs .g{display:none}
+#side{grid-column:2;grid-row:2;overflow-y:auto;background:var(--pn);border-left:1px solid var(--ln);padding:14px 16px 24px;-webkit-overflow-scrolling:touch}
+.pane{display:none}body[data-v=an] #p-an,body[data-v=kz] #p-kz,body[data-v=set] #p-set{display:block}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);margin:18px 0 8px}h3:first-child{margin-top:0}
+ul.ins{margin:0;padding:0;list-style:none}ul.ins li{padding:8px 10px;margin-bottom:6px;background:var(--bg);border-left:3px solid var(--ac);border-radius:6px;font-size:13px}
+ul.ins li.w{border-color:var(--bad)}ul.ins li.g{border-color:var(--ok)}
+svg.ch{width:100%;height:auto;display:block;background:var(--bg);border-radius:8px}
+.lg{display:flex;gap:12px;font-size:11px;color:var(--mu);margin:4px 2px 10px}.lg i{display:inline-block;width:10px;height:3px;margin-right:4px;vertical-align:middle}
+.bar{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;margin-bottom:9px}.bar span:nth-child(2){color:var(--mu);text-align:right}.bar div{grid-column:1/3;height:5px;background:var(--bg);border-radius:3px;overflow:hidden}.bar div i{display:block;height:100%}
+.d{font-size:11px;margin-left:6px}.up{color:var(--bad)}.dn{color:var(--ok)}
+button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:10px;font:inherit;cursor:pointer;margin-bottom:8px}button.b:hover{border-color:var(--ac)}
+.row{display:flex;align-items:center;justify-content:space-between;margin:10px 0}.row input[type=checkbox]{width:22px;height:22px;accent-color:var(--ac)}
+.note{font-size:12px;color:var(--mu)}
+.k{border-top:1px solid var(--ln);padding:12px 0;font-size:13px}.k h4{margin:0 0 2px;font-size:14px;color:var(--bad)}.k .tag{font-size:10px;color:var(--mu);border:1px solid var(--ln);border-radius:99px;padding:1px 7px;margin-left:6px}.k a{color:var(--ac)}.k p{margin:6px 0}
+.kb{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.kb input{flex:1 1 100%;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:9px;font:inherit}
+.chip{background:none;color:var(--tx);border:1px solid var(--ln);border-radius:99px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}.chip.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
+#tip{position:absolute;display:none;pointer-events:none;background:rgba(20,22,42,.97);border:1px solid var(--ln);border-radius:10px;padding:9px 12px;max-width:300px;box-shadow:0 8px 28px #000a;z-index:5}
+#tip b{display:block}#tip em{display:block;font-style:normal;color:var(--mu);font-size:12px}
+#hint{position:absolute;left:12px;bottom:8px;font-size:11px;color:var(--mu);pointer-events:none}
+#qr{background:#fff;padding:4px;border-radius:10px;width:180px;margin:10px auto;color:#000;font-size:12px}#qr svg{display:block;width:100%;height:auto}
+.don{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0}.don input{width:100px;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:8px;font:inherit;text-align:center}
+.sc{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}.sc .b{margin:0;padding:8px;font-size:12px}
+@media(max-width:859px){
+ h1 small{display:none}header{padding:8px 12px}
+ #main{display:flex;flex-direction:column}
+ #stage,#side{flex:1;min-height:0;border:0}
+ #tabs{order:3;border:0;border-top:1px solid var(--ln);padding-bottom:env(safe-area-inset-bottom,0px)}#tabs .g{display:block}#tabs button{padding:12px 2px}
+ body[data-v=graf] #side,body:not([data-v=graf]) #stage{display:none}
+ #tip{left:0!important;right:0;bottom:0;top:auto!important;max-width:none;border-radius:16px 16px 0 0;padding:16px;font-size:15px}
+ #hint{display:none}
 }
 </style>
 </head>
-<body>
+<body data-v="an">
 <header>
-  <h1>ROZPOČET</h1>
-  <div class="ctl year-ctl">
-    <label>Rok: <b id="yl">2024</b></label>
-    <input type="range" id="yr" min="2020" max="2050" value="2024">
-  </div>
-  <div id="btns">
-    <button id="bKauzyModalBtn" style="display:none;" title="Kauzy">⚠ <span class="btn-text">Kauzy</span></button>
-    <button id="bSettings" title="Nastavení">⚙️ <span class="btn-text">Nastavení</span></button>
-    <button id="bDonate" title="Podpořit">❤️ <span class="btn-text">Podpořit</span></button>
-  </div>
+ <h1>Státní rozpočet ČR<small>Příjmy, výdaje a dluh do roku 2050</small></h1>
+ <div class="yr"><label><span>Rok</span><b id="yl">2024</b></label><input type="range" id="yr" min="2020" max="2050" value="2024" aria-label="Rok"></div>
 </header>
 <div id="kpi">
-  <div><small>Příjmy</small><span id="kP" style="color:var(--ok)"></span></div>
-  <div><small>Výdaje</small><span id="kV" style="color:var(--bad)"></span></div>
-  <div><small>Saldo</small><span id="kS"></span></div>
-  <div><small>Státní dluh</small><span id="kD" style="color:var(--acc)"></span></div>
-  <div><small>Dluh / HDP</small><span id="kG"></span></div>
+ <div><small>Příjmy</small><span id="kP" style="color:var(--ok)"></span></div>
+ <div><small>Výdaje</small><span id="kV" style="color:var(--bad)"></span></div>
+ <div><small>Saldo</small><span id="kS"></span></div>
+ <div><small>Státní dluh</small><span id="kD" style="color:var(--ac)"></span></div>
+ <div><small>Dluh / HDP</small><span id="kG"></span></div>
+ <div><small>Úroky / příjmy</small><span id="kI"></span></div>
 </div>
-<div id="stage">
-  <div id="tip"></div>
-  <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · štípnutí = zoom · ⚠ = kauza (aktivace v Nastavení)</div>
+<div id="main">
+ <div id="stage"><div id="tip"></div><div id="hint">Klik = rozbalit · tažení = posun · kolečko / štípnutí = zoom</div></div>
+ <nav id="tabs"><button class="g" data-v="graf">Graf</button><button data-v="an" class="on">Analýza</button><button data-v="kz">Kauzy</button><button data-v="set">Nastavení</button></nav>
+ <aside id="side">
+  <section class="pane" id="p-an">
+   <h3>Hlavní zjištění</h3><ul class="ins" id="ins"></ul>
+   <h3>Vývoj 2024–2050 (mld. Kč)</h3><div id="c1"></div><div class="lg"><span><i style="background:var(--ok)"></i>Příjmy</span><span><i style="background:var(--bad)"></i>Výdaje</span></div>
+   <h3>Dluh k HDP (%)</h3><div id="c2"></div>
+   <h3>Roční saldo (mld. Kč)</h3><div id="c3"></div><div class="lg"><span><i style="background:var(--ok)"></i>Přebytek</span><span><i style="background:var(--bad)"></i>Schodek</span></div>
+   <h3>Výdaje podle oblastí</h3><div id="vb"></div>
+   <h3>Příjmy podle zdrojů</h3><div id="pb"></div>
+  </section>
+  <section class="pane" id="p-kz">
+   <h3>Kauzy a rozpočet</h3>
+   <div class="row"><label for="kT">Označit kauzy v grafu (⚠)</label><input type="checkbox" id="kT"></div>
+   <div class="kb"><input id="kS2" placeholder="Hledat jméno, stranu, kauzu…"><button class="chip on" data-s="">Vše</button><button class="chip" data-s="stát">Stát</button><button class="chip" data-s="kraj">Kraj</button><button class="chip" data-s="město">Město</button></div>
+   <div id="kL"></div>
+   <p class="note">Stav k 12. 11. 2026 podle zpravodajských zdrojů; před dalším šířením ověřte u aktuálních rozhodnutí soudů. Do pravomocného rozhodnutí platí presumpce neviny. Napojení na položky grafu je orientační.</p>
+  </section>
+  <section class="pane" id="p-set">
+   <h3>Model</h3>
+   <div class="row"><label for="rt">Úrok z dluhu</label><b id="rl">3,0 %</b></div>
+   <input type="range" id="rt" min="15" max="70" value="30">
+   <div class="row"><label for="gt">Růst HDP (nominální)</label><b id="gl">4,5 %</b></div>
+   <input type="range" id="gt" min="10" max="70" value="45">
+   <div class="sc"><button class="b" data-sc="0.03,0.045">Základní</button><button class="b" data-sc="0.05,0.045">Vyšší úroky (5 %)</button><button class="b" data-sc="0.03,0.025">Pomalý růst HDP</button><button class="b" data-sc="0.025,0.055">Optimistický</button></div>
+   <p class="note">Každá položka roste vlastním tempem, schodek navyšuje dluh. Jde o zjednodušený model, ne o oficiální prognózu.</p>
+   <h3>Zobrazení grafu</h3>
+   <button class="b" id="bAll">Rozbalit všechny větve</button><button class="b" id="bNone">Sbalit na základní skupiny</button><button class="b" id="bFit">Vystředit přehled</button>
+   <h3>Podpořit projekt</h3>
+   <p class="note">Web vzniká ve volném čase. Dobrovolný dar bez protiplnění můžete poslat na účet:</p>
+   <div class="don"><label for="donAmt">Částka (Kč)</label><input type="number" id="donAmt" value="20" min="1" step="1"></div>
+   <div id="qr"></div>
+   <button class="b" id="bCopy">275030807/0300 – kopírovat</button>
+  </section>
+ </aside>
 </div>
-
-<!-- Nastavení Modal -->
-<div id="settingsModal" class="modal-overlay" style="display:none;">
-  <div class="modal-content">
-    <span id="closeSettings" class="close-btn">&times;</span>
-    <h2>Nastavení a ovládání</h2>
-    
-    <div class="setting-group">
-      <label>Modelovaný úrok z dluhu: <b id="rl">3,0 %</b></label>
-      <input type="range" id="rt" min="15" max="70" value="30">
-    </div>
-    
-    <div class="setting-group toggle-group">
-      <label for="kToggle">Zobrazit politické kauzy (⚠)</label>
-      <input type="checkbox" id="kToggle">
-    </div>
-    
-    <hr class="divider">
-    
-    <div class="action-buttons">
-      <button id="bAll">Rozbalit všechny větve</button>
-      <button id="bNone">Sbalit na základní skupiny</button>
-      <button id="bFit">Vystředit celý přehled</button>
-    </div>
-  </div>
-</div>
-
-<!-- Podpořit Modal -->
-<div id="donateModal" class="modal-overlay" style="display:none;">
-  <div class="modal-content">
-    <span id="closeModal" class="close-btn">&times;</span>
-    <h2>Podpořit projekt</h2>
-    <p>Tento web dělám ve volném čase. Pokud vám přijde užitečný, můžete mi na jeho provoz a kávu poslat dobrovolný dar.</p>
-    <div class="donate-controls">
-      <label for="donAmt">Částka (Kč):</label>
-      <input type="number" id="donAmt" value="20" min="1" step="1">
-    </div>
-    <div class="qr-placeholder">
-      <img id="qrImg" src="" alt="QR kód se načítá...">
-      <p>Číslo účtu:<br><strong id="accNum">Načítám...</strong></p>
-    </div>
-    <p class="disclaimer">Jedná se o dobrovolný dar bez protiplnění. Děkuji!</p>
-  </div>
-</div>
-
-<!-- Kauzy Modal -->
-<div id="kauzyModal" class="modal-overlay" style="display:none;">
-  <div class="modal-content" id="kauzyBox">
-    <span id="closeK" class="close-btn">&times;</span>
-    <h2>Kauzy a rozpočet <span id="kCount" class="meta"></span></h2>
-    <div class="kbar"><input id="kSearch" placeholder="Hledat jméno, stranu, kauzu…"><button class="chip on" data-s="">Vše</button><button class="chip" data-s="stát">Stát</button><button class="chip" data-s="kraj">Kraj</button><button class="chip" data-s="město">Město</button><button class="chip" data-s="bez vazby">Mimo rozpočet</button></div>
-    <div id="kList"></div>
-    <p class="disclaimer">Stav k 12. 11. 2026 podle zpravodajských zdrojů; před dalším šířením ověřte u aktuálních rozhodnutí soudů. Dokud rozhodnutí není pravomocné, platí presumpce neviny. Napojení na položky grafu je orientační; u městských a krajských kauz nejde o přímé výdaje státního rozpočtu.</p>
-  </div>
-</div>
-
 <script>
-// ---------- konstanty a stav ----------
-let W = window.innerWidth < 600 ? 140 : 190;
-let CG = window.innerWidth < 600 ? 40 : 64;
-const GAP = 4, SC = 0.45;
-const BASE_DEBT = 3200, BASE_GDP = 7800, GDP_G = 0.045;
-let P, V, debtNode, year = 2024, rate = 0.03, debt = BASE_DEBT, gdp = BASE_GDP;
-let panX = 0, panY = 0, zoom = 1, mx = -1, my = -1, hover = null, bounds, cnv;
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>new Intl.NumberFormat('cs-CZ',{minimumFractionDigits:d,maximumFractionDigits:d}).format(v);
+const rgbOf=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const GAP=4,SC=.45,BASE_DEBT=3200,BASE_GDP=7800;let GDP_G=.045;
+let W=190,CG=64,P,V,debtNode,year=2024,rate=.03,debt=BASE_DEBT,gdp=BASE_GDP,panX=0,panY=0,zoom=1,mx=-1,my=-1,hover=null,bounds,cnv,showK=false,touched=false,S=[],base24={};
+const ptrs=new Map();let moved=false,start=null,lastPinch=null;
+const HIST={2020:{p:1475.5,v:1842.9},2021:{p:1487.2,v:1906.9},2022:{p:1624,v:1985,approx:true},2023:{p:1914.1,v:2202.6}};
+const KAUZY=[
+{t:'Čapí hnízdo',s:'stát',n:['Strukturální a kohezní fondy'],w:'Andrej Babiš (ANO), Jana Nagyová (ANO)',st:'Nagyová: Městský soud ji 4. 5. 2026 uznal vinnou, Vrchní soud trest potvrdil. Babiš: Sněmovna ho v březnu 2026 nevydala ke stíhání. Oba vinu odmítají.',f:['Dotace','50 mil. Kč z fondů EU (vráceno 2018)'],u:'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704',l:'ČT24'},
+{t:'Střet zájmů a dotace Agrofertu',s:'stát',n:['Společná zemědělská politika','Strukturální a kohezní fondy'],w:'Andrej Babiš (ANO)',st:'Audit Evropské komise shledal střet zájmů. Část projektů už stát proplatil sám; Agrofert s auditem nesouhlasí.',f:['Vyplaceno','min. 155 mil. Kč ze státní pokladny'],u:'https://www.seznamzpravy.cz/clanek/domaci-kauzy-ujistili-eu-ze-dotace-pro-agrofert-jsou-zmrazeny-vzapeti-miliardy-uvolnili-305430',l:'Seznam Zprávy'},
+{t:'Kauza Rath',s:'kraj',n:['Dotace krajům','Dotace nemocnicím'],w:'David Rath (ČSSD) a další',st:'Rath pravomocně odsouzen (7 + 1 rok), Ústavní soud stížnosti odmítl.',f:['Objem zakázek','přes 700 mil. Kč'],u:'https://ct24.ceskatelevize.cz/david-rath/',l:'ČT24'},
+{t:'Trafiky a Nagygate',s:'stát',n:['Dividendy a odvody státních podniků','Ústavní orgány a úřady'],w:'Petr Nečas (ODS), Jana Nečasová',st:'Pravomocně odsouzeni, Ústavní soud v roce 2026 stížnosti odmítl.',f:['Trest Nečase','2,5 roku podmíněně, pokuta 1 mil. Kč'],u:'https://www.seznamzpravy.cz/clanek/domaci-zivot-v-cesku-kauza-trafik-pro-exposlance-skoncila-ustavni-soud-odmitl-stiznost-303905',l:'Seznam Zprávy'},
+{t:'Dozimetr',s:'město',n:['Dotace obcím','Platby za státní pojištěnce'],w:'Petr Hlubuček (STAN), Michal Redl',st:'Probíhá hlavní líčení. Obžalovaní vinu odmítají.',f:['Návrh trestů (2026)','Redl 10 let, Hlubuček 8 let'],u:'https://ct24.ceskatelevize.cz/tema/kauza-dozimetr-1723',l:'ČT24'},
+{t:'Bitcoinový dar justici',s:'stát',n:['Spravedlnost','Ostatní nedaňové'],w:'Pavel Blažek (ODS), Tomáš Jiřikovský',st:'Obžalovány 4 osoby, vinu popírají.',f:['Dar','téměř 1 mld. Kč (468 BTC)'],u:'https://ct24.ceskatelevize.cz/tema/tomas-jirikovsky-99489',l:'ČT24'},
+{t:'Autostráda',s:'kraj',n:['Silnice II. a III. třídy','Dotace krajům'],w:'Michal Zácha (ODS), Robert Knobloch',st:'Návrh obžaloby 8 lidí, úplatky přes 46 mil. Kč.',f:['Kód','2 slivovice = 200 tis. Kč'],u:'https://www.seznamzpravy.cz/clanek/domaci-kauzy-policie-politici-ods-pouzivali-pro-uplatky-kody-2-slivovice-200-tisic-239879',l:'Seznam Zprávy'},
+{t:'Opencard',s:'město',n:['Dotace obcím'],w:'Bohuslav Svoboda, Tomáš Hudeček, úředníci',st:'Politici pravomocně zproštěni, úředníci dostali podmínky.',f:['Náklady','přes 1,7 mld. Kč'],u:'https://ct24.ceskatelevize.cz/tema/opencard-17519',l:'ČT24'},
+{t:'Stoka (Brno-střed)',s:'město',n:['Dotace obcím'],w:'Jiří Švachula (ANO) a další',st:'Švachula dohodl trest 7 let a 8 měsíců.',f:['Zakázky','přes 260 mil. Kč'],u:'https://ct24.ceskatelevize.cz/tema/kauza-stoka-4477',l:'ČT24'},
+{t:'Roušky a respirátory',s:'stát',n:['Záchranné služby a ostatní','Státní správa'],w:'Adam Vojtěch (ANO), Jan Hamáček (ČSSD)',st:'NKÚ kritizoval netransparentnost, policie šetření odložila.',f:['Cena','8,5 mld. Kč za 1. polovinu 2020'],u:'https://www.seznamzpravy.cz/clanek/zdrcujici-zaver-kontroloru-vlada-pri-pandemii-selhala-147877',l:'Seznam Zprávy'}];
 
-let showK = false; 
+class Node{constructor(name,col,parent,depth){this.name=name;this.rgb=rgbOf(col);this.parent=parent;this.depth=depth;this.root=parent?parent.root:this;this.kids=[];this.exp=false;this.base=0;this.sim=0;this.val=0;this.g=0;this.x=this.y=this.h=0;this.tx=this.ty=this.th=0;this.sub=0;this.init=false;this.kauzy=null}
+reset(){this.sim=this.base;this.kids.forEach(k=>k.reset())}
+grow(){this.kids.length?this.kids.forEach(k=>k.grow()):this.sim*=1+this.g}
+total(){return this.val=this.kids.length?this.kids.reduce((s,k)=>s+k.total(),0):this.sim}}
+function build(spec,parent,col,depth){const[name,v,g,c]=spec;col=c||col;const n=new Node(name,col,parent,depth);if(Array.isArray(v))n.kids=v.map(s=>build(s,n,col,depth+1));else{n.base=v;n.g=g||0}if(name==='Obsluha státního dluhu')debtNode=n;return n}
+function initData(){
+P=build(['CELKOVÉ PŘÍJMY',[['Daňové příjmy',[['DPH',386,.03],['Daně z příjmů',[['Právnické osoby (firmy)',240,.025],['Fyzické osoby',[['Ze závislé činnosti',140,.04],['Z přiznání (OSVČ)',10,.03],['Srážková daň',10,.02]]]]],['Spotřební daně',[['Minerální oleje',85,.01],['Tabákové výrobky',60,-.01],['Líh a lihoviny',15,.01],['Pivo a víno',10,.01]]],['Majetkové a ostatní',[['Daň z nemovitých věcí',15,.02],['Silniční daň',1,0],['Odvody z hazardu',12,.02],['Správní poplatky',6,.02]]],['Ekologické daně',[['Zemní plyn',3.5,.01],['Elektřina',2,.01],['Pevná paliva',.5,0]]],['Clo (podíl ČR)',5,.01]],0,'#94e2d5'],
+['Sociální pojištění',[['Důchodové pojištění',[['Zaměstnavatelé',420,.035],['Zaměstnanci',160,.035],['OSVČ',50,.03]]],['Nemocenské pojištění',45,.03],['Politika zaměstnanosti',25,.03]],0,'#f9e2af'],
+['Nedaňové a kapitálové',[['Příjmy z rozpočtu EU',[['Strukturální a kohezní fondy',70,.01],['Společná zemědělská politika',30,.01],['Ostatní programy EU',10,.01]]],['Příjmy z prodeje majetku',15,0],['Sankce, poplatky a ostatní',[['Dividendy a odvody státních podniků',25,.02],['Soudní poplatky a pokuty',20,.02],['Příjmy z úroků a služeb',14,.02],['Ostatní nedaňové',45,.02]]]],0,'#fab387']]],null,'#a6e3a1',0);
+V=build(['CELKOVÉ VÝDAJE',[['Práce a sociální věci',[['Důchodový systém',[['Starobní důchody',580,.045],['Invalidní důchody',65,.03],['Vdovské a sirotčí',55,.025]]],['Sociální podpora',[['Rodičovský příspěvek',42,.01],['Příspěvek na bydlení',18,.05],['Přídavky na děti',6,.02],['Ostatní dávky',14,.02]]],['Péče a zdravotní postižení',[['Příspěvek na péči',45,.045],['Dávky osobám se zdravotním postižením',16,.03],['Sociální služby (dotace krajům)',26,.03]]],['Zaměstnanost',[['Podpora v nezaměstnanosti',14,.02],['Aktivní politika zaměstnanosti',9,.02]]]],0,'#f38ba8'],
+['Školství',[['Regionální školství',[['Platy učitelů',160,.035],['Provozní výdaje škol',30,.02],['Asistenti pedagoga',12,.04],['Nepedagogičtí pracovníci',25,.03],['Učebnice a rozvojové programy',8,.02]]],['Vysoké školy',40,.03],['Věda a výzkum',[['Grantová agentura ČR',7,.04],['Akademie věd ČR',8,.04],['Technologická agentura ČR',7,.04],['Operační programy a ostatní',21,.04]]]],0,'#fab387'],
+['Zdravotnictví',[['Platby za státní pojištěnce',145,.04],['Dotace nemocnicím',15,.02],['Investice do zdravotnictví',8,.03],['Veřejné zdraví a prevence',5,.03],['Záchranné služby a ostatní',7,.02]],0,'#f9e2af'],
+['Obrana',[['Akvizice techniky',70,.06],['Personální náklady',50,.04],['Provoz a výcvik',40,.03],['Výstavba a infrastruktura',12,.04],['Zahraniční mise a NATO',8,.03],['Vojenská správa a zdravotnictví',6,.03],['Kyberobrana a zpravodajství',5,.05]],0,'#a6e3a1'],
+['Doprava',[['Dopravní infrastruktura',[['Dálnice a silnice 1. tříd',80,.03],['Železnice',55,.03],['Silnice II. a III. třídy',12,.03],['Cyklostezky a ostatní',4,.03]]],['Dotace regionům',15,.02],['Dálková veřejná doprava',12,.03],['Vodní doprava a ostatní',3,.02]],0,'#94e2d5'],
+['Vnitro a bezpečnost',[['Policie ČR',50,.03],['Hasičský sbor',15,.03],['Státní správa',35,.02],['Cizinecká policie a azyl',6,.03],['Volby a registry',4,.02],['Krizové řízení',3,.03]],0,'#89b4fa'],
+['Transfery samosprávám',[['Dotace krajům',30,.03],['Dotace obcím',25,.03]],0,'#f5c2e7'],
+['Odvod do rozpočtu EU',60,.02,'#74c7ec'],['Obsluha státního dluhu',95,0,'#cba6f7'],
+['Ostatní resorty',[['Zemědělství',65,.015],['Průmysl a obchod',50,.02],['Spravedlnost',[['Soudy',17,.03],['Vězeňství',12,.03],['Státní zastupitelství',6,.03]]],['Zahraničí',[['Zastupitelské úřady',8,.02],['Rozvojová spolupráce',4,.02],['Mezinárodní organizace',3,.02]]],['Kultura',[['Kulturní instituce',9,.02],['Památková péče',5,.02]]],['Životní prostředí',[['Ochrana ovzduší a vod',15,.02],['Krajina a příroda',10,.02]]],['Místní rozvoj',[['Podpora bydlení',7,.02],['Cestovní ruch',3,.02],['Regionální rozvoj',2,.02]]],['Ústavní orgány a úřady',8,.02],['Rezervy',42,.02]],0,'#b4befe']]],null,'#f38ba8',0);
+P.exp=V.exp=true;
+const by={},idx=n=>{by[n.name]=n;n.kids.forEach(idx)};idx(P);idx(V);
+KAUZY.forEach(k=>k.n.forEach(nm=>{for(let a=by[nm];a;a=a.parent){(a.kauzy=a.kauzy||[]);if(!a.kauzy.includes(k))a.kauzy.push(k)}}))}
 
-const ptrs = new Map(); let moved = false, start = null, lastPinch = null;
-const $ = id => document.getElementById(id);
-const fmt = (v, d = 1) => new Intl.NumberFormat('cs-CZ', {minimumFractionDigits: d, maximumFractionDigits: d}).format(v);
-const rgbOf = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
+function scaleTo(n,f){n.kids.length?n.kids.forEach(k=>scaleTo(k,f)):n.sim*=f}
+function simulate(){
+P.reset();V.reset();debt=BASE_DEBT;gdp=BASE_GDP;let prev=0;
+if(year<2024){const h=HIST[year];P.total();V.total();scaleTo(P,h.p/P.val);scaleTo(V,h.v/V.val);for(let y=2023;y>=year;y--)debt+=HIST[y].p-HIST[y].v;gdp=NaN;P.total();V.total();return}
+for(let y=2024;y<=year;y++){if(y>2024){P.grow();V.grow();gdp*=1+GDP_G;debt-=prev}debtNode.sim=debt*rate;prev=P.total()-V.total()}}
+function series(){const keep=year;S=[];for(let y=2024;y<=2050;y++){year=y;simulate();if(y===2024)base24=Object.fromEntries([...P.kids,...V.kids].map(k=>[k.name,k.val]));S.push({y,p:P.val,v:V.val,d:debt,g:debt/gdp*100,s:P.val-V.val})}year=keep;simulate()}
 
-// ---------- historická data ----------
-const HIST = {
-  2020: {p: 1475.5, v: 1842.9},
-  2021: {p: 1487.2, v: 1906.9},
-  2022: {p: 1624,   v: 1985,   approx: true},
-  2023: {p: 1914.1, v: 2202.6}
-};
+// ---------- analýza ----------
+function chart(keys,cols,fy){const w=340,h=130,L=34,x=i=>L+i*(w-L-8)/(S.length-1);
+const all=keys.flatMap(k=>S.map(r=>r[k])),lo=Math.min(...all),hi=Math.max(...all),y=v=>h-18-(v-lo)/(hi-lo||1)*(h-30);
+let s=`<svg class="ch" viewBox="0 0 ${w} ${h}" role="img">`;
+[lo,(lo+hi)/2,hi].forEach(v=>s+=`<line x1="${L}" x2="${w-8}" y1="${y(v)}" y2="${y(v)}" stroke="#262a48"/><text x="${L-4}" y="${y(v)+3}" text-anchor="end" font-size="9" fill="#8e92b8">${fy(v)}</text>`);
+[2024,2037,2050].forEach(t=>s+=`<text x="${x(t-2024)}" y="${h-4}" text-anchor="middle" font-size="9" fill="#8e92b8">${t}</text>`);
+keys.forEach((k,j)=>s+=`<polyline fill="none" stroke="${cols[j]}" stroke-width="2" points="${S.map((r,i)=>x(i).toFixed(1)+','+y(r[k]).toFixed(1)).join(' ')}"/>`);
+if(year>=2024)s+=`<line x1="${x(year-2024)}" x2="${x(year-2024)}" y1="8" y2="${h-18}" stroke="#89b4fa" stroke-dasharray="3"/>`;
+return s+'</svg>'}
+function bars(n,tot){return[...n.kids].sort((a,b)=>b.val-a.val).map(k=>{const b=base24[k.name],d=year>=2024&&b?(k.val/b-1)*100:null;
+return`<div class="bar"><span>${esc(k.name)}${d!==null&&Math.abs(d)>=.5?`<span class="d ${d>0?'up':'dn'}">${d>0?'+':''}${fmt(d,0)} % vs. 2024</span>`:''}</span><span>${fmt(k.val,0)} mld. · ${fmt(k.val/tot*100,0)} %</span><div><i style="width:${k.val/tot*100}%;background:rgb(${k.rgb})"></i></div></div>`}).join('')}
+function bchart(){const w=340,h=130,L=34,bw=(w-L-8)/S.length,m=Math.max(...S.map(r=>Math.abs(r.s)))||1,z=h/2-6;
+let s=`<svg class="ch" viewBox="0 0 ${w} ${h}" role="img">`;
+S.forEach((r,i)=>{const hh=Math.abs(r.s)/m*(z-8);s+=`<rect x="${(L+i*bw+1).toFixed(1)}" y="${(r.s>=0?z-hh:z).toFixed(1)}" width="${(bw-2).toFixed(1)}" height="${Math.max(hh,1).toFixed(1)}" fill="${r.s>=0?'#a6e3a1':'#f38ba8'}" opacity="${r.y===year?1:.5}"/>`});
+s+=`<line x1="${L}" x2="${w-8}" y1="${z}" y2="${z}" stroke="#8e92b8"/><text x="${L-4}" y="${z+3}" text-anchor="end" font-size="9" fill="#8e92b8">0</text><text x="${L-4}" y="12" text-anchor="end" font-size="9" fill="#8e92b8">+${fmt(m,0)}</text><text x="${L-4}" y="${2*z-2}" text-anchor="end" font-size="9" fill="#8e92b8">−${fmt(m,0)}</text>`;
+[2024,2037,2050].forEach(t=>s+=`<text x="${(L+(t-2024)*bw+bw/2).toFixed(1)}" y="${h-4}" text-anchor="middle" font-size="9" fill="#8e92b8">${t}</text>`);
+return s+'</svg>'}
+function renderAn(){
+const s=P.val-V.val,over=S.find(r=>r.g>60),last=S[S.length-1],ir=debtNode.val/P.val*100,L=[];
+L.push([s<0?'w':'g',`Saldo ${s>=0?'přebytek':'schodek'} <b>${fmt(Math.abs(s),0)} mld. Kč</b>${isFinite(gdp)?` (${fmt(Math.abs(s)/gdp*100,1)} % HDP)`:''}.`]);
+L.push([ir>8?'w':'',`Úroky z dluhu odnesou <b>${fmt(ir,1)} %</b> příjmů (${fmt(debtNode.val,0)} mld. Kč).`]);
+L.push(['',`Sociální oblast tvoří <b>${fmt(V.kids[0].val/V.val*100,0)} %</b> výdajů, s dluhovou službou dohromady ${fmt((V.kids[0].val+debtNode.val)/V.val*100,0)} %.`]);
+L.push([over?'w':'g',over?`Dluh překročí 60 % HDP v roce <b>${over.y}</b>; v roce 2050 to bude ${fmt(last.g,0)} % (${fmt(last.d,0)} mld. Kč).`:`Dluh zůstane do roku 2050 pod 60 % HDP (${fmt(last.g,0)} %).`]);
+const n=year>=2024?year-2024:0,cg=(a,b)=>(Math.pow(a/b,1/n)-1)*100;
+if(n){const cv=cg(V.val,S[0].v),cp=cg(P.val,S[0].p);L.push([cv>cp?'w':'g',`Od roku 2024 rostou výdaje o <b>${fmt(cv,1)} %</b> ročně, příjmy o <b>${fmt(cp,1)} %</b>.`]);
+const dr=[...V.kids].map(k=>[k.name,k.val-base24[k.name]]).sort((a,b)=>b[1]-a[1])[0];if(dr[1]>0)L.push(['',`Nejvíc přibude u oblasti <b>${esc(dr[0])}</b>: +${fmt(dr[1],0)} mld. Kč oproti 2024.`])}
+L.push(['',`Každý 1 p. b. úroku navíc stojí ročně přibližně <b>${fmt(debt*.01,0)} mld. Kč</b>.`]);
+const sur=S.find(r=>r.s>=0);L.push([sur?'g':'w',sur?`Rozpočet se při tomto nastavení dostane do přebytku v roce <b>${sur.y}</b>.`:'Do roku 2050 se rozpočet při tomto nastavení nedostane do přebytku.']);
+$('ins').innerHTML=L.map(([c,t])=>`<li class="${c}">${t}</li>`).join('');
+$('c1').innerHTML=chart(['p','v'],['#a6e3a1','#f38ba8'],v=>fmt(v,0));
+$('c2').innerHTML=chart(['g'],['#89b4fa'],v=>fmt(v,0)+'%');$('c3').innerHTML=bchart();
+$('vb').innerHTML=bars(V,V.val);$('pb').innerHTML=bars(P,P.val)}
+function updateKpi(){const s=P.val-V.val;$('kP').textContent=fmt(P.val,0)+' mld.';$('kV').textContent=fmt(V.val,0)+' mld.';$('kS').textContent=fmt(s,0)+' mld.';$('kS').style.color=s>=0?'var(--ok)':'var(--bad)';$('kD').textContent=fmt(debt,0)+' mld.';$('kG').textContent=isFinite(gdp)?fmt(debt/gdp*100,1)+' %':'—';$('kI').textContent=fmt(debtNode.val/P.val*100,1)+' %'}
+function refresh(){simulate();series();updateKpi();renderAn()}
 
-// ---------- kauzy ----------
-const KAUZY = [
-  { id: 'capi', title: 'Čapí hnízdo', scope: 'stát', nodes: ['Strukturální a kohezní fondy'],
-    who: 'Andrej Babiš (ANO), Jana Nagyová (ANO)',
-    status: 'Nagyová: Městský soud ji 4. 5. 2026 uznal vinnou, Vrchní soud trest potvrdil. Babiš: Sněmovna ho v březnu 2026 nevydala ke stíhání, jeho část řízení je přerušena. Oba vinu odmítají.',
-    facts: [['Dotace', '50 mil. Kč (program pro malé a střední podniky z fondů EU)'],
-      ['Podezření žaloby', 'Farma Čapí hnízdo se na přelomu 2007/2008 formálně vyvedla z Agrofertu a akcie šly Babišově rodině, aby splnila podmínky dotace'],
-      ['Vráceno', '50 mil. Kč vráceno do rozpočtu v červnu 2018'],
-      ['Návrh žalobce pro Nagyovou', '3 roky podmíněně, zkušební doba 5 let, pokuta 500 tis. Kč']],
-    time: [['2015', 'policie se případem začíná zabývat'], ['2017', 'Babiš a Nagyová stíháni'],
-      ['únor 2024', 'Městský soud oba osvobodil'], ['23. 6. 2025', 'Vrchní soud osvobození zrušil a případ vrátil'],
-      ['říjen 2025', 'Babiš po volbách znovu získává imunitu, soud žádá Sněmovnu o vydání'],
-      ['březen 2026', 'Sněmovna Babiše nevydala'], ['4. 5. 2026', 'Nagyová uznána vinnou (podmínka a peněžitý trest), potvrzeno Vrchním soudem']],
-    people: [['Andrej Babiš', 'ANO, premiér', 'stíhání přerušeno; vinu odmítá, proces označuje za politický'],
-      ['Jana Nagyová', 'ANO, europoslankyně', 'uznána vinnou, podmínka a peněžitý trest']],
-    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704']] },
-  { id: 'agrofert', title: 'Střet zájmů a dotace holdingu Agrofert', scope: 'stát', nodes: ['Společná zemědělská politika', 'Strukturální a kohezní fondy'],
-    who: 'Andrej Babiš (ANO)',
-    status: 'Audit Evropské komise shledal střet zájmů. Česko nemuselo vracet peníze do Bruselu, ale část projektů už stát proplatil sám.',
-    facts: [['Vyplaceno', 'min. 155 mil. Kč ze státní pokladny'], ['Dotace na toustový chléb', '100 mil. Kč; platil český rozpočet']],
-    time: [['2021', 'finální zpráva auditu: Babiš stále ovládá Agrofert'], ['26. 5. 2026', 'odpověď českých úřadů Komisi nestačila, dotace neproplatí']],
-    people: [['Andrej Babiš', 'ANO, premiér', 'audit označuje za účelový'], ['Agrofert', 'holding', 'nesouhlasí']],
-    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-ujistili-eu-ze-dotace-pro-agrofert-jsou-zmrazeny-vzapeti-miliardy-uvolnili-305430']] },
-  { id: 'rath', title: 'Kauza Rath', scope: 'kraj', nodes: ['Dotace krajům', 'Dotace nemocnicím'],
-    who: 'David Rath (ČSSD) a další',
-    status: 'Rath pravomocně odsouzen (7 + 1 rok). Ústavní soud stížnosti odmítl.',
-    facts: [['Objem zakázek', 'přes 700 mil. Kč'], ['Hotovost', '7 mil. Kč v krabici od vína']],
-    time: [['2012', 'Zadržení'], ['2022', 'podmíněně propuštěn, později výzva k návratu do vězení pro 2. větev']],
-    people: [['David Rath', 'ČSSD', 'pravomocně odsouzen']],
-    src: [['ČT24', 'https://ct24.ceskatelevize.cz/david-rath/']] },
-  { id: 'necas', title: 'Trafiky a Nagygate', scope: 'stát', nodes: ['Dividendy a odvody státních podniků', 'Ústavní orgány a úřady'],
-    who: 'Petr Nečas (ODS), Jana Nečasová',
-    status: 'Pravomocně odsouzeni. Kauza skončila v roce 2026 odmítnutím ústavních stížností.',
-    facts: [['Trest Nečase', '2,5 roku podmíněně, pokuta 1 mil. Kč'], ['Podstata', 'Lukrativní funkce za vzdání se mandátu']],
-    time: [['2013', 'Razie na Úřadu vlády'], ['2026', 'Ústavní soud odmítl stížnosti']],
-    people: [['Petr Nečas', 'ODS', 'odsouzen'], ['Jana Nečasová', 'ředitelka kabinetu', 'odsouzena']],
-    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/domaci-zivot-v-cesku-kauza-trafik-pro-exposlance-skoncila-ustavni-soud-odmitl-stiznost-303905']] },
-  { id: 'dozimetr', title: 'Dozimetr', scope: 'město', nodes: ['Dotace obcím', 'Platby za státní pojištěnce'],
-    who: 'Petr Hlubuček (STAN), Michal Redl',
-    status: 'Probíhá hlavní líčení. Redl a Hlubuček vinu odmítají.',
-    facts: [['Návrh trestů (2026)', 'Redl 10 let, Hlubuček 8 let'], ['Dohody', 'Někteří podnikatelé přijali pokuty v milionech']],
-    time: [['2022', 'Razie'], ['2026', 'Výslechy svědků']],
-    people: [['Petr Hlubuček', 'STAN', 'obžalován'], ['Michal Redl', 'podnikatel', 'obžalován']],
-    src: [['ČT24', 'https://ct24.ceskatelevize.cz/tema/kauza-dozimetr-1723']] },
-  { id: 'bitcoin', title: 'Bitcoinový dar justici', scope: 'stát', nodes: ['Spravedlnost', 'Ostatní nedaňové'],
-    who: 'Pavel Blažek (ODS), Tomáš Jiřikovský',
-    status: 'Obžalováni 4 lidé. Vinu popírají.',
-    facts: [['Dar', 'téměř 1 mld. Kč (468 BTC)'], ['Návrh pro Blažka', '6,5 roku vězení']],
-    time: [['2025', 'Ministerstvo přijímá dar, demisa'], ['2026', 'Obžaloba']],
-    people: [['Pavel Blažek', 'ODS', 'obžalován'], ['Tomáš Jiřikovský', 'dárce', 'obžalován']],
-    src: [['ČT24', 'https://ct24.ceskatelevize.cz/tema/tomas-jirikovsky-99489']] },
-  { id: 'autostrada', title: 'Autostráda', scope: 'kraj', nodes: ['Silnice II. a III. třídy', 'Dotace krajům'],
-    who: 'Michal Zácha (ODS), Robert Knobloch',
-    status: 'Návrh na obžalobu 8 lidí. Úplatky přes 46 mil. Kč.',
-    facts: [['Kód', '2 slivovice = 200 tis. Kč']],
-    time: [['2023', 'Razie'], ['2026', 'Návrh obžaloby']],
-    people: [['Michal Zácha', 'ODS', 'hrozí 7 let']],
-    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-policie-politici-ods-pouzivali-pro-uplatky-kody-2-slivovice-200-tisic-239879']] },
-  { id: 'opencard', title: 'Opencard', scope: 'město', nodes: ['Dotace obcím'],
-    who: 'Bohuslav Svoboda, Tomáš Hudeček, úředníci',
-    status: 'Politici pravomocně zproštěni, úředníci dostali podmínky.',
-    facts: [['Náklady', 'přes 1,7 mld. Kč']],
-    time: [['2010s', 'Soudní procesy']],
-    people: [['Tomáš Hudeček', 'TOP 09', 'zproštěn'], ['Bohuslav Svoboda', 'ODS', 'zproštěn']],
-    src: [['ČT24', 'https://ct24.ceskatelevize.cz/tema/opencard-17519']] },
-  { id: 'stoka', title: 'Stoka (Brno-střed)', scope: 'město', nodes: ['Dotace obcím'],
-    who: 'Jiří Švachula (ANO) a další',
-    status: 'Švachula dohodl 7 let a 8 měsíců.',
-    facts: [['Zakázky', 'přes 260 mil. Kč'], ['Úplatky', 'obvykle 10 %']],
-    time: [['2019', 'Razie'], ['2025', 'Dohody o vině a trestu']],
-    people: [['Jiří Švachula', 'ANO', 'odsouzen dohodou']],
-    src: [['ČT24', 'https://ct24.ceskatelevize.cz/tema/kauza-stoka-4477']] },
-  { id: 'respiratory', title: 'Roušky a respirátory', scope: 'stát', nodes: ['Záchranné služby a ostatní', 'Státní správa'],
-    who: 'Adam Vojtěch (ANO), Jan Hamáček (ČSSD)',
-    status: 'NKÚ kritizoval netransparentnost. Policie šetření odložila.',
-    facts: [['Cena', '8,5 mld. Kč za 1. polovinu 2020']],
-    time: [['2020', 'Nákupy'], ['2021', 'Zpráva NKÚ, policie odkládá']],
-    people: [['Adam Vojtěch', 'ANO', 'hájí postup']],
-    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/zdrcujici-zaver-kontroloru-vlada-pri-pandemii-selhala-147877']] }
-];
+// ---------- rozložení grafu ----------
+function layout(n,x,y,dir){n.tx=dir<0?x-W:x;n.ty=y;n.th=n.val*SC;let sub=n.th;
+if(n.exp&&n.kids.length){const nx=dir<0?n.tx-CG:n.tx+W+CG;let cy=y,tot=0;for(const k of n.kids){const s=layout(k,nx,cy,dir);cy+=s+GAP;tot+=s+GAP}sub=Math.max(sub,tot-GAP)}
+n.sub=sub;bounds.l=Math.min(bounds.l,n.tx);bounds.r=Math.max(bounds.r,n.tx+W);bounds.t=Math.min(bounds.t,y);bounds.b=Math.max(bounds.b,y+sub);return sub}
+function doLayout(){bounds={l:1e9,t:1e9,r:-1e9,b:-1e9};layout(P,-CG/2,0,-1);layout(V,CG/2,0,1)}
+function fit(){touched=false;doLayout();const m=16,bw=bounds.r-bounds.l,bh=bounds.b-bounds.t;zoom=Math.min((width-2*m)/bw,(height-2*m)/bh,3);panX=(width-bw*zoom)/2-bounds.l*zoom;panY=(height-bh*zoom)/2-bounds.t*zoom}
+function setAll(n,f,top){if(n.kids.length){n.exp=top?true:f;n.kids.forEach(k=>setAll(k,f))}if(!n.exp)resetInit(n)}
+function resetInit(n){n.kids.forEach(k=>{k.init=false;resetInit(k)})}
 
-// ---------- datový model ----------
-class Node {
-  constructor(name, col, parent, depth) {
-    this.name = name; this.rgb = rgbOf(col); this.parent = parent; this.depth = depth;
-    this.root = parent ? parent.root : this;
-    this.kids = []; this.exp = false; this.base = 0; this.sim = 0; this.val = 0; this.g = 0;
-    this.x = this.y = this.h = 0; this.tx = this.ty = this.th = 0; this.sub = 0; this.init = false;
-    this.kauzy = null;
-  }
-  reset() { this.sim = this.base; this.kids.forEach(k => k.reset()); }
-  grow() { this.kids.length ? this.kids.forEach(k => k.grow()) : this.sim *= 1 + this.g; }
-  total() { return this.val = this.kids.length ? this.kids.reduce((s, k) => s + k.total(), 0) : this.sim; }
-}
+// ---------- p5 ----------
+function setup(){
+const st=$('stage');cnv=createCanvas(Math.max(st.clientWidth,10),Math.max(st.clientHeight,10));cnv.parent('stage');
+pixelDensity(Math.min(window.devicePixelRatio||1,2));textFont('system-ui, sans-serif');
+initData();refresh();fit();setupInput();
+new ResizeObserver(()=>{const w=st.clientWidth,h=st.clientHeight;if(w<10||h<10)return;
+W=w<600?140:190;CG=w<600?40:64;resizeCanvas(w,h);if(!touched)fit()}).observe(st);
+$('yr').oninput=e=>{year=+e.target.value;$('yl').textContent=year+(HIST[year]&&HIST[year].approx?' (odhad)':'');refresh()};
+$('rt').oninput=e=>{rate=e.target.value/1000;$('rl').textContent=fmt(rate*100,1)+' %';refresh()};
+const go=v=>{document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))};
+function setView(v){if(v==='graf'&&innerWidth>=860)v='an';document.body.dataset.v=v;go(v)}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+const rv=()=>{const v=document.body.dataset.v;if(innerWidth<860&&v!=='graf'&&!window._m){}};
+addEventListener('resize',()=>{if(innerWidth>=860&&document.body.dataset.v==='graf')setView('an')});
+if(innerWidth<860)setView('graf');
+const afterFit=()=>{if(innerWidth<860)setView('graf')};
+const setP=(r,g)=>{rate=r;GDP_G=g;$('rt').value=r*1000;$('gt').value=g*1000;$('rl').textContent=fmt(r*100,1)+' %';$('gl').textContent=fmt(g*100,1)+' %';refresh()};
+$('gt').oninput=e=>{GDP_G=e.target.value/1000;$('gl').textContent=fmt(GDP_G*100,1)+' %';refresh()};
+document.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>setP(...b.dataset.sc.split(',').map(Number)));
+$('bAll').onclick=()=>{setAll(P,true,true);setAll(V,true,true);fit();afterFit()};
+$('bNone').onclick=()=>{setAll(P,false,true);setAll(V,false,true);fit();afterFit()};
+$('bFit').onclick=()=>{fit();afterFit()};
+const ACC='275030807',BANK='0300',BB=BANK+'000000'+ACC.padStart(10,'0'),IBAN='CZ'+String(98n-BigInt(BB+'123500')%97n).padStart(2,'0')+BB;
+const upQ=()=>{const a=Math.max(1,+$('donAmt').value||1).toFixed(2),spd=`SPD*1.0*ACC:${IBAN}*AM:${a}*CC:CZK*MSG:DOBROVOLNY DAR`;
+try{const q=qrcode(0,'M');q.addData(spd);q.make();$('qr').innerHTML=q.createSvgTag({cellSize:4,margin:4,scalable:true})}catch(e){$('qr').textContent='QR kód se nepodařilo vytvořit'}};
+$('donAmt').oninput=upQ;upQ();
+$('bCopy').onclick=()=>{const t=ACC+'/'+BANK;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>$('bCopy').textContent='Zkopírováno ✓').catch(()=>$('bCopy').textContent=t)};
+$('kT').onchange=e=>showK=e.target.checked;
+let sc='',q='';
+const rk=()=>{const L=KAUZY.filter(k=>(!sc||k.s===sc)&&(!q||JSON.stringify(k).toLowerCase().includes(q)));
+$('kL').innerHTML=L.map(k=>`<div class="k"><h4>${esc(k.t)}<span class="tag">${k.s}</span></h4><div class="note">${esc(k.w)} · ${esc(k.n.join(', '))}</div><p>${esc(k.st)}</p><p class="note">${esc(k.f[0])}: ${esc(k.f[1])} · <a href="${k.u}" target="_blank" rel="noopener">${esc(k.l)}</a></p></div>`).join('')||'<p class="note">Nic nenalezeno.</p>'};
+rk();$('kS2').oninput=e=>{q=e.target.value.toLowerCase();rk()};
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{sc=b.dataset.s;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===b));rk()})}
 
-function build(spec, parent, col, depth) {
-  const [name, v, g, c] = spec; col = c || col;
-  const n = new Node(name, col, parent, depth);
-  if (Array.isArray(v)) n.kids = v.map(s => build(s, n, col, depth + 1));
-  else { n.base = v; n.g = g || 0; }
-  if (name === 'Obsluha státního dluhu') debtNode = n;
-  return n;
-}
+function pick(n,wx,wy){let f=null;if(wx>=n.x&&wx<=n.x+W&&wy>=n.y&&wy<=n.y+n.h)f=n;if(n.exp)for(const k of n.kids){const r=pick(k,wx,wy);if(r)f=r}return f}
+function draw(){background(11,12,21);doLayout();const wx=(mx-panX)/zoom,wy=(my-panY)/zoom;
+hover=(mx>=0&&!(ptrs.size&&moved))?(pick(P,wx,wy)||pick(V,wx,wy)):null;
+push();translate(panX,panY);scale(zoom);drawNode(P,-1);drawNode(V,1);pop();showTip()}
+function drawNode(n,dir){
+if(!n.init){const p=n.parent;n.x=p?p.x:n.tx;n.y=p?p.y:n.ty;n.h=0;n.init=true}
+n.x+=(n.tx-n.x)*.2;n.y+=(n.ty-n.y)*.2;n.h+=(n.th-n.h)*.2;
+const rh=n.h*zoom;if(rh<.3)return;const[r,g,b]=n.rgb,hv=hover===n,hasK=showK&&n.kauzy,mob=width<600;
+if(rh<5){noStroke();fill(r,g,b,210);rect(n.x,n.y,W,n.h)}
+else{fill(r,g,b,hv?90:42);stroke(hv?color(255):color(r,g,b));strokeWeight((hv?2:1)/zoom);rect(n.x,n.y,W,n.h,Math.min(5,n.h/3))}
+if(rh>=(mob?22:17)){noStroke();textAlign(LEFT,TOP);textSize(12.5/zoom);
+const pad=8/zoom,av=W-pad*2-(n.kids.length?14/zoom:0)-(hasK?26/zoom:0);let l=n.name;while(l.length>3&&textWidth(l)>av)l=l.slice(0,-2);if(l!==n.name)l=l.trim()+'…';
+fill(236,237,250);text(l,n.x+pad,n.y+6/zoom);
+if(rh>=(mob?45:36)){fill(r,g,b);textSize(11.5/zoom);text(fmt(n.val,n.val<10?1:0)+' mld. · '+fmt(n.val/n.root.val*100,1)+' %',n.x+pad,n.y+24/zoom)}
+if(n.kids.length){fill(255,255,255,170);textAlign(RIGHT,TOP);textSize(12/zoom);text(n.exp?'▾':'▸',n.x+W-6/zoom,n.y+6/zoom)}
+if(hasK){fill(243,139,168);textAlign(RIGHT,TOP);textSize(12/zoom);text('⚠'+n.kauzy.length,n.x+W-(n.kids.length?22:6)/zoom,n.y+6/zoom)}}
+if(n.exp&&n.kids.length){const sx=dir>0?n.x+W:n.x;let off=0;
+for(const c of n.kids){if(c.h*zoom>=.3){const ex=dir>0?c.x:c.x+W,m=(sx+ex)/2,y0=n.y+off,y1=y0+c.h,c0=c.y,c1=c.y+c.h;
+noStroke();fill(c.rgb[0],c.rgb[1],c.rgb[2],hover===c?130:62);beginShape();vertex(sx,y0);bezierVertex(m,y0,m,c0,ex,c0);vertex(ex,c1);bezierVertex(m,c1,m,y1,sx,y1);endShape(CLOSE)}
+off+=c.h;drawNode(c,dir)}}}
+function showTip(){const t=$('tip');if(!hover){t.style.display='none';return}
+const n=hover,R=[`<b>${esc(n.name)}</b>${fmt(n.val,1)} mld. Kč`];
+if(n.parent)R.push(`<em>${fmt(n.val/n.parent.val*100,1)} % z „${esc(n.parent.name)}“</em>`);
+R.push(`<em>${fmt(n.val/n.root.val*100,1)} % z ${n.root===P?'příjmů':'výdajů'} celkem</em>`);
+if(!n.kids.length&&n.g)R.push(`<em>Růst v modelu: ${n.g>0?'+':''}${fmt(n.g*100,1)} % ročně</em>`);
+if(n===debtNode)R.push(`<em>Úrok ${fmt(rate*100,1)} % z dluhu ${fmt(debt,0)} mld.</em>`);
+if(n.kids.length)R.push(`<em>${n.kids.length} podpoložek – klikni pro ${n.exp?'sbalení':'rozbalení'}</em>`);
+if(showK&&n.kauzy)n.kauzy.forEach(k=>R.push(`<em style="color:var(--bad)">⚠ ${esc(k.t)} – ${esc(k.f[0])}: ${esc(k.f[1])}</em>`));
+t.innerHTML=R.join('');t.style.display='block';
+if(width>=600){let ty=ptrs.size>0?my-t.offsetHeight-20:my+16;t.style.left=Math.max(4,Math.min(mx+16,width-t.offsetWidth-4))+'px';t.style.top=Math.max(4,Math.min(ty,height-t.offsetHeight-4))+'px'}}
 
-function initData() {
-  P = build(['CELKOVÉ PŘÍJMY', [
-    ['Daňové příjmy', [
-      ['DPH', 386, .03],
-      ['Daně z příjmů', [['Právnické osoby (firmy)', 240, .025], ['Fyzické osoby', [['Ze závislé činnosti', 140, .04], ['Z přiznání (OSVČ)', 10, .03], ['Srážková daň', 10, .02]]]]],
-      ['Spotřební daně', [['Minerální oleje', 85, .01], ['Tabákové výrobky', 60, -.01], ['Líh a lihoviny', 15, .01], ['Pivo a víno', 10, .01]]],
-      ['Majetkové a ostatní', [['Daň z nemovitých věcí', 15, .02], ['Silniční daň', 1, 0], ['Odvody z hazardu', 12, .02], ['Správní poplatky', 6, .02]]],
-      ['Ekologické daně', [['Zemní plyn', 3.5, .01], ['Elektřina', 2, .01], ['Pevná paliva', 0.5, 0]]],
-      ['Clo (podíl ČR)', 5, .01]], 0, '#94e2d5'],
-    ['Sociální pojištění', [['Důchodové pojištění', [['Zaměstnavatelé', 420, .035], ['Zaměstnanci', 160, .035], ['OSVČ', 50, .03]]], ['Nemocenské pojištění', 45, .03], ['Politika zaměstnanosti', 25, .03]], 0, '#f9e2af'],
-    ['Nedaňové a kapitálové', [['Příjmy z rozpočtu EU', [['Strukturální a kohezní fondy', 70, .01], ['Společná zemědělská politika', 30, .01], ['Ostatní programy EU', 10, .01]]], ['Příjmy z prodeje majetku', 15, 0], ['Sankce, poplatky a ostatní', [['Dividendy a odvody státních podniků', 25, .02], ['Soudní poplatky a pokuty', 20, .02], ['Příjmy z úroků a služeb', 14, .02], ['Ostatní nedaňové', 45, .02]]]], 0, '#fab387']
-  ]], null, '#a6e3a1', 0);
-
-  V = build(['CELKOVÉ VÝDAJE', [
-    ['Práce a sociální věci', [['Důchodový systém', [['Starobní důchody', 580, .045], ['Invalidní důchody', 65, .03], ['Vdovské a sirotčí', 55, .025]]], ['Sociální podpora', [['Rodičovský příspěvek', 42, .01], ['Příspěvek na bydlení', 18, .05], ['Přídavky na děti', 6, .02], ['Ostatní dávky', 14, .02]]], ['Péče a zdravotní postižení', [['Příspěvek na péči', 45, .045], ['Dávky osobám se zdravotním postižením', 16, .03], ['Sociální služby (dotace krajům)', 26, .03]]], ['Zaměstnanost', [['Podpora v nezaměstnanosti', 14, .02], ['Aktivní politika zaměstnanosti', 9, .02]]]], 0, '#f38ba8'],
-    ['Školství', [['Regionální školství', [['Platy učitelů', 160, .035], ['Provozní výdaje škol', 30, .02], ['Asistenti pedagoga', 12, .04], ['Nepedagogičtí pracovníci', 25, .03], ['Učebnice a rozvojové programy', 8, .02]]], ['Vysoké školy', 40, .03], ['Věda a výzkum', [['Grantová agentura ČR', 7, .04], ['Akademie věd ČR', 8, .04], ['Technologická agentura ČR', 7, .04], ['Operační programy a ostatní', 21, .04]]]], 0, '#fab387'],
-    ['Zdravotnictví', [['Platby za státní pojištěnce', 145, .04], ['Dotace nemocnicím', 15, .02], ['Investice do zdravotnictví', 8, .03], ['Veřejné zdraví a prevence', 5, .03], ['Záchranné služby a ostatní', 7, .02]], 0, '#f9e2af'],
-    ['Obrana', [['Akvizice techniky', 70, .06], ['Personální náklady', 50, .04], ['Provoz a výcvik', 40, .03], ['Výstavba a infrastruktura', 12, .04], ['Zahraniční mise a NATO', 8, .03], ['Vojenská správa a zdravotnictví', 6, .03], ['Kyberobrana a zpravodajství', 5, .05]], 0, '#a6e3a1'],
-    ['Doprava', [['Dopravní infrastruktura', [['Dálnice a silnice 1. tříd', 80, .03], ['Železnice', 55, .03], ['Silnice II. a III. třídy', 12, .03], ['Cyklostezky a ostatní', 4, .03]]], ['Dotace regionům', 15, .02], ['Dálková veřejná doprava', 12, .03], ['Vodní doprava a ostatní', 3, .02]], 0, '#94e2d5'],
-    ['Vnitro a bezpečnost', [['Policie ČR', 50, .03], ['Hasičský sbor', 15, .03], ['Státní správa', 35, .02], ['Cizinecká policie a azyl', 6, .03], ['Volby a registry', 4, .02], ['Krizové řízení', 3, .03]], 0, '#89b4fa'],
-    ['Transfery samosprávám', [['Dotace krajům', 30, .03], ['Dotace obcím', 25, .03]], 0, '#f5c2e7'],
-    ['Odvod do rozpočtu EU', 60, .02, '#74c7ec'],
-    ['Obsluha státního dluhu', 95, 0, '#cba6f7'],
-    ['Ostatní resorty', [['Zemědělství', 65, .015], ['Průmysl a obchod', 50, .02], ['Spravedlnost', [['Soudy', 17, .03], ['Vězeňství', 12, .03], ['Státní zastupitelství', 6, .03]]], ['Zahraničí', [['Zastupitelské úřady', 8, .02], ['Rozvojová spolupráce', 4, .02], ['Mezinárodní organizace', 3, .02]]], ['Kultura', [['Kulturní instituce', 9, .02], ['Památková péče', 5, .02]]], ['Životní prostředí', [['Ochrana ovzduší a vod', 15, .02], ['Krajina a příroda', 10, .02]]], ['Místní rozvoj', [['Podpora bydlení', 7, .02], ['Cestovní ruch', 3, .02], ['Regionální rozvoj', 2, .02]]], ['Ústavní orgány a úřady', 8, .02], ['Rezervy', 42, .02]], 0, '#b4befe']
-  ]], null, '#f38ba8', 0);
-  P.exp = V.exp = true;
-  attachKauzy();
-}
-
-function attachKauzy() {
-  const by = {}, idx = n => { by[n.name] = n; n.kids.forEach(idx); };
-  idx(P); idx(V);
-  KAUZY.forEach(k => k.nodes.forEach(nm => {
-    for (let a = by[nm]; a; a = a.parent) {
-      a.kauzy = a.kauzy || [];
-      if (!a.kauzy.includes(k)) a.kauzy.push(k);
-    }
-  }));
-}
-
-// ---------- simulace ----------
-function scaleTo(n, f) { n.kids.length ? n.kids.forEach(k => scaleTo(k, f)) : n.sim *= f; }
-function simulate() {
-  P.reset(); V.reset(); debt = BASE_DEBT; gdp = BASE_GDP; let prev = 0;
-  if (year < 2024) {
-    const h = HIST[year]; P.total(); V.total();
-    scaleTo(P, h.p / P.val); scaleTo(V, h.v / V.val);
-    for (let y = 2023; y >= year; y--) debt += HIST[y].p - HIST[y].v;
-    gdp = NaN;
-    P.total(); V.total(); updateKpi(); return;
-  }
-  for (let y = 2024; y <= year; y++) {
-    if (y > 2024) { P.grow(); V.grow(); gdp *= 1 + GDP_G; debt -= prev; }
-    debtNode.sim = debt * rate;
-    prev = P.total() - V.total();
-  }
-  updateKpi();
-}
-function updateKpi() {
-  const s = P.val - V.val;
-  $('kP').textContent = fmt(P.val, 0) + ' mld.'; $('kV').textContent = fmt(V.val, 0) + ' mld.';
-  $('kS').textContent = fmt(s, 0) + ' mld.'; $('kS').style.color = s >= 0 ? 'var(--ok)' : 'var(--bad)';
-  $('kD').textContent = fmt(debt, 0) + ' mld.';
-  $('kG').textContent = isFinite(gdp) ? fmt(debt / gdp * 100, 1) + ' %' : '—';
-}
-
-// ---------- rozložení ----------
-function layout(n, x, y, dir) {
-  n.tx = dir < 0 ? x - W : x; n.ty = y; n.th = n.val * SC;
-  let sub = n.th;
-  if (n.exp && n.kids.length) {
-    const nx = dir < 0 ? n.tx - CG : n.tx + W + CG;
-    let cy = y, tot = 0;
-    for (const k of n.kids) { const s = layout(k, nx, cy, dir); cy += s + GAP; tot += s + GAP; }
-    sub = Math.max(sub, tot - GAP);
-  }
-  n.sub = sub;
-  bounds.l = Math.min(bounds.l, n.tx); bounds.r = Math.max(bounds.r, n.tx + W);
-  bounds.t = Math.min(bounds.t, y); bounds.b = Math.max(bounds.b, y + sub);
-  return sub;
-}
-function doLayout() { bounds = {l: 1e9, t: 1e9, r: -1e9, b: -1e9}; layout(P, -CG / 2, 0, -1); layout(V, CG / 2, 0, 1); }
-function fit() {
-  doLayout();
-  const m = 20, bw = bounds.r - bounds.l, bh = bounds.b - bounds.t;
-  zoom = Math.min((width - 2 * m) / bw, (height - 2 * m) / bh, 3);
-  panX = (width - bw * zoom) / 2 - bounds.l * zoom; panY = (height - bh * zoom) / 2 - bounds.t * zoom;
-}
-function setAll(n, f, top) { if (n.kids.length) { n.exp = top ? true : f; n.kids.forEach(k => setAll(k, f)); } if (!n.exp) resetInit(n); }
-function resetInit(n) { n.kids.forEach(k => { k.init = false; resetInit(k); }); }
-
-// ---------- p5 setup a události ----------
-function setup() {
-  const st = $('stage');
-  cnv = createCanvas(st.clientWidth, st.clientHeight); cnv.parent('stage');
-  pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
-  textFont('system-ui, sans-serif');
-  initData(); simulate(); fit(); setupInput();
-
-  $('yr').oninput = e => { year = +e.target.value; $('yl').textContent = year + (HIST[year] && HIST[year].approx ? ' (odhad)' : ''); simulate(); };
-  $('rt').oninput = e => { rate = e.target.value / 1000; $('rl').textContent = fmt(rate * 100, 1) + ' %'; simulate(); };
-  
-  $('bAll').onclick = () => { setAll(P, true, true); setAll(V, true, true); fit(); $('settingsModal').style.display = 'none'; };
-  $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); $('settingsModal').style.display = 'none'; };
-  $('bFit').onclick = () => { fit(); $('settingsModal').style.display = 'none'; };
-
-  const closeAllModals = () => {
-    document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
-  };
-
-  $('bSettings').onclick = () => $('settingsModal').style.display = 'flex';
-  $('closeSettings').onclick = closeAllModals;
-  $('settingsModal').onclick = e => { if (e.target === $('settingsModal')) closeAllModals(); };
-
-  $('kToggle').checked = showK;
-  $('kToggle').onchange = e => {
-    showK = e.target.checked;
-    $('bKauzyModalBtn').style.display = showK ? 'inline-flex' : 'none';
-  };
-
-  let kScope = '', kQ = '';
-  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-  const renderK = () => {
-    const q = kQ.toLowerCase();
-    const list = KAUZY.filter(k => (!kScope || k.scope === kScope) &&
-      (!q || JSON.stringify(k).toLowerCase().includes(q)));
-    $('kCount').textContent = '(' + list.length + ' z ' + KAUZY.length + ')';
-    $('kList').innerHTML = list.map(k => `<div class="kauza">
-      <h3>${esc(k.title)}<span class="tag">${esc(k.scope)}</span></h3>
-      <div class="meta">${esc(k.who)}${k.nodes.length ? ' · položky: ' + esc(k.nodes.join(', ')) : ''}</div>
-      <p>${esc(k.status)}</p>
-      <table>${k.facts.map(f => `<tr><td>${esc(f[0])}</td><td>${esc(f[1])}</td></tr>`).join('')}</table>
-      <details><summary>Průběh</summary><ul>${k.time.map(t => `<li><b>${esc(t[0])}</b>: ${esc(t[1])}</li>`).join('')}</ul></details>
-      <details><summary>Osoby a výsledky</summary><ul>${k.people.map(p => `<li><b>${esc(p[0])}</b> (${esc(p[1])}): ${esc(p[2])}</li>`).join('')}</ul></details>
-      <div class="meta">Zdroje: ${k.src.map(s => `<a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])}</a>`).join(' · ')}</div></div>`).join('');
-  };
-  renderK();
-  $('kSearch').oninput = e => { kQ = e.target.value; renderK(); };
-  document.querySelectorAll('.chip[data-s]').forEach(b => b.onclick = () => {
-    kScope = b.dataset.s; document.querySelectorAll('.chip[data-s]').forEach(x => x.classList.toggle('on', x === b)); renderK();
-  });
-  
-  $('bKauzyModalBtn').onclick = () => $('kauzyModal').style.display = 'flex';
-  $('closeK').onclick = closeAllModals;
-  $('kauzyModal').onclick = e => { if (e.target === $('kauzyModal')) closeAllModals(); };
-
-  const myAccount = "275030807";
-  const myBank = "0300";
-  const updateQR = () => {
-    const amt = $('donAmt').value || 0;
-    $('qrImg').src = `https://api.paylibo.com/paylibo/generator/czech/image?accountNumber=${myAccount}&bankCode=${myBank}&amount=${amt}&currency=CZK&message=Dobrovolny+dar`;
-    $('accNum').textContent = `${myAccount}/${myBank}`;
-  };
-  $('bDonate').onclick = () => { $('donateModal').style.display = 'flex'; updateQR(); };
-  $('closeModal').onclick = closeAllModals;
-  $('donateModal').onclick = e => { if (e.target === $('donateModal')) closeAllModals(); };
-  $('donAmt').oninput = updateQR;
-}
-
-function windowResized() { 
-  const st = $('stage'); 
-  resizeCanvas(st.clientWidth, st.clientHeight);
-  W = window.innerWidth < 600 ? 140 : 190;
-  CG = window.innerWidth < 600 ? 40 : 64;
-  fit();
-}
-
-function pick(n, wx, wy) {
-  let found = null;
-  if (wx >= n.x && wx <= n.x + W && wy >= n.y && wy <= n.y + n.h) found = n;
-  if (n.exp) for (const k of n.kids) { const f = pick(k, wx, wy); if (f) found = f; }
-  return found;
-}
-
-function draw() {
-  background(13, 14, 24);
-  doLayout();
-  const wx = (mx - panX) / zoom, wy = (my - panY) / zoom;
-  hover = (mx >= 0 && !(ptrs.size && moved)) ? (pick(P, wx, wy) || pick(V, wx, wy)) : null;
-  push(); translate(panX, panY); scale(zoom);
-  drawNode(P, -1); drawNode(V, 1);
-  pop();
-  showTip();
-}
-
-function drawNode(n, dir) {
-  if (!n.init) { const p = n.parent; n.x = p ? p.x : n.tx; n.y = p ? p.y : n.ty; n.h = 0; n.init = true; }
-  n.x += (n.tx - n.x) * 0.2; n.y += (n.ty - n.y) * 0.2; n.h += (n.th - n.h) * 0.2;
-  const rh = n.h * zoom;
-  if (rh < 0.3) return;
-  const [r, g, b] = n.rgb, hv = hover === n;
-  const hasK = showK && n.kauzy;
-
-  if (rh < 5) { noStroke(); fill(r, g, b, 210); rect(n.x, n.y, W, n.h); }
-  else {
-    fill(r, g, b, hv ? 90 : 42); stroke(hv ? color(255) : color(r, g, b)); strokeWeight((hv ? 2 : 1) / zoom);
-    rect(n.x, n.y, W, n.h, Math.min(5, n.h / 3));
-  }
-  
-  let minRh = window.innerWidth < 600 ? 22 : 17;
-  if (rh >= minRh) {
-    noStroke(); textAlign(LEFT, TOP); textSize(Math.max(12, 12.5 / zoom));
-    
-    const pad = 8 / zoom, av = W - pad * 2 - (n.kids.length ? 14 / zoom : 0) - (hasK ? 26 / zoom : 0);
-    let l = n.name;
-    
-    let charLimit = Math.max(5, Math.floor(av / (7 / zoom))); 
-    if (l.length > charLimit) { l = l.slice(0, charLimit - 1) + '…'; }
-    
-    fill(236, 237, 250); text(l, n.x + pad, n.y + 6 / zoom);
-    
-    let detailRh = window.innerWidth < 600 ? 45 : 36;
-    if (rh >= detailRh) {
-      fill(r, g, b); textSize(Math.max(11, 11.5 / zoom));
-      text(fmt(n.val, n.val < 10 ? 1 : 0) + ' mld. · ' + fmt(n.val / n.root.val * 100, 1) + ' %', n.x + pad, n.y + 24 / zoom);
-    }
-    if (n.kids.length) { fill(255, 255, 255, 170); textAlign(RIGHT, TOP); textSize(Math.max(12, 12 / zoom)); text(n.exp ? '▾' : '▸', n.x + W - 6 / zoom, n.y + 6 / zoom); }
-    if (hasK) {
-      fill(243, 139, 168); textAlign(RIGHT, TOP); textSize(Math.max(12, 12 / zoom));
-      text('⚠' + n.kauzy.length, n.x + W - (n.kids.length ? 22 : 6) / zoom, n.y + 6 / zoom);
-    }
-  }
-  
-  if (n.exp && n.kids.length) {
-    const sx = dir > 0 ? n.x + W : n.x; let off = 0;
-    for (const c of n.kids) {
-      if (c.h * zoom >= 0.3) {
-        const ex = dir > 0 ? c.x : c.x + W, m = (sx + ex) / 2, y0 = n.y + off, y1 = y0 + c.h, c0 = c.y, c1 = c.y + c.h;
-        noStroke(); fill(c.rgb[0], c.rgb[1], c.rgb[2], hover === c ? 130 : 62);
-        beginShape(); vertex(sx, y0); bezierVertex(m, y0, m, c0, ex, c0); vertex(ex, c1); bezierVertex(m, c1, m, y1, sx, y1); endShape(CLOSE);
-      }
-      off += c.h; drawNode(c, dir);
-    }
-  }
-}
-
-function showTip() {
-  const t = $('tip');
-  if (!hover) { t.style.display = 'none'; return; }
-  const n = hover, rows = [`<b>${n.name}</b>${fmt(n.val, 1)} mld. Kč`];
-  if (n.parent) rows.push(`<em>${fmt(n.val / n.parent.val * 100, 1)} % z „${n.parent.name}“</em>`);
-  rows.push(`<em>${fmt(n.val / n.root.val * 100, 1)} % z ${n.root === P ? 'příjmů' : 'výdajů'} celkem</em>`);
-  if (!n.kids.length && n.g) rows.push(`<em>Růst v modelu: ${n.g > 0 ? '+' : ''}${fmt(n.g * 100, 1)} % ročně</em>`);
-  if (n === debtNode) rows.push(`<em>Úrok ${fmt(rate * 100, 1)} % z dluhu ${fmt(debt, 0)} mld.</em>`);
-  if (n.kids.length) rows.push(`<em>${n.kids.length} podpoložek – klikni pro ${n.exp ? 'sbalení' : 'rozbalení'}</em>`);
-  if (showK && n.kauzy) n.kauzy.forEach(k => rows.push(`<em style="color:var(--bad)">⚠ ${k.title} – ${k.facts[0][0]}: ${k.facts[0][1]}</em>`));
-  t.innerHTML = rows.join(''); t.style.display = 'block';
-  
-  let targetX = mx + 16;
-  let targetY = my + 16;
-  if (ptrs.size > 0) { targetY = my - t.offsetHeight - 20; }
-  
-  t.style.left = Math.max(4, Math.min(targetX, width - t.offsetWidth - 4)) + 'px';
-  t.style.top = Math.max(4, Math.min(targetY, height - t.offsetHeight - 4)) + 'px';
-}
-
-// ---------- ovládání ----------
-function zoomAt(cx, cy, f) {
-  const nz = Math.min(14, Math.max(0.08, zoom * f)); f = nz / zoom;
-  panX = cx - (cx - panX) * f; panY = cy - (cy - panY) * f; zoom = nz;
-}
-function setupInput() {
-  const el = cnv.elt; el.style.touchAction = 'none';
-  const pos = e => { const r = el.getBoundingClientRect(); return {x: e.clientX - r.left, y: e.clientY - r.top}; };
-  el.addEventListener('pointerdown', e => {
-    el.setPointerCapture(e.pointerId); const p = pos(e); ptrs.set(e.pointerId, p); mx = p.x; my = p.y;
-    if (ptrs.size === 1) { moved = false; start = p; } else { moved = true; lastPinch = null; }
-  });
-  el.addEventListener('pointermove', e => {
-    const p = pos(e); mx = p.x; my = p.y;
-    if (!ptrs.has(e.pointerId)) return;
-    const old = ptrs.get(e.pointerId); ptrs.set(e.pointerId, p);
-    if (ptrs.size === 1) {
-      if (!moved && Math.hypot(p.x - start.x, p.y - start.y) < 6) return;
-      moved = true; panX += p.x - old.x; panY += p.y - old.y;
-    } else if (ptrs.size === 2) {
-      const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, c = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
-      if (lastPinch) { panX += c.x - lastPinch.c.x; panY += c.y - lastPinch.c.y; zoomAt(c.x, c.y, d / lastPinch.d); }
-      lastPinch = {d, c};
-    }
-  });
-  el.addEventListener('pointerup', e => {
-    const tap = ptrs.size === 1 && !moved, p = pos(e); ptrs.delete(e.pointerId); lastPinch = null;
-    if (tap) {
-      const n = pick(P, (p.x - panX) / zoom, (p.y - panY) / zoom) || pick(V, (p.x - panX) / zoom, (p.y - panY) / zoom);
-      if (n && n.kids.length) { n.exp = !n.exp; if (!n.exp) resetInit(n); }
-    }
-    if (!ptrs.size) moved = false;
-  });
-  el.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); if (!ptrs.size) moved = false; });
-  el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') mx = -1; });
-  el.addEventListener('wheel', e => {
-    e.preventDefault(); const p = pos(e);
-    zoomAt(p.x, p.y, Math.exp(-Math.max(-120, Math.min(120, e.deltaY)) * 0.0015));
-  }, {passive: false});
-}
+function zoomAt(cx,cy,f){const nz=Math.min(14,Math.max(.08,zoom*f));f=nz/zoom;panX=cx-(cx-panX)*f;panY=cy-(cy-panY)*f;zoom=nz;touched=true}
+function setupInput(){const el=cnv.elt;el.style.touchAction='none';
+const pos=e=>{const r=el.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
+el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);const p=pos(e);ptrs.set(e.pointerId,p);mx=p.x;my=p.y;if(ptrs.size===1){moved=false;start=p}else{moved=true;lastPinch=null}});
+el.addEventListener('pointermove',e=>{const p=pos(e);mx=p.x;my=p.y;if(!ptrs.has(e.pointerId))return;const old=ptrs.get(e.pointerId);ptrs.set(e.pointerId,p);
+if(ptrs.size===1){if(!moved&&Math.hypot(p.x-start.x,p.y-start.y)<6)return;moved=true;touched=true;panX+=p.x-old.x;panY+=p.y-old.y}
+else if(ptrs.size===2){const[a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,c={x:(a.x+b.x)/2,y:(a.y+b.y)/2};if(lastPinch){panX+=c.x-lastPinch.c.x;panY+=c.y-lastPinch.c.y;zoomAt(c.x,c.y,d/lastPinch.d)}lastPinch={d,c}}});
+el.addEventListener('pointerup',e=>{const tap=ptrs.size===1&&!moved,p=pos(e);ptrs.delete(e.pointerId);lastPinch=null;
+if(tap){const n=pick(P,(p.x-panX)/zoom,(p.y-panY)/zoom)||pick(V,(p.x-panX)/zoom,(p.y-panY)/zoom);if(n&&n.kids.length){n.exp=!n.exp;if(!n.exp)resetInit(n)}}
+if(!ptrs.size)moved=false});
+el.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);if(!ptrs.size)moved=false});
+el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')mx=-1});
+el.addEventListener('wheel',e=>{e.preventDefault();const p=pos(e);zoomAt(p.x,p.y,Math.exp(-Math.max(-120,Math.min(120,e.deltaY))*.0015))},{passive:false})}
 </script>
 </body>
 </html>
