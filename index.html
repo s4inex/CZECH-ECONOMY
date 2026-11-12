@@ -42,6 +42,7 @@ button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln
 .chip{background:none;color:var(--tx);border:1px solid var(--ln);border-radius:99px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}.chip.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
 #tip{position:absolute;display:none;pointer-events:none;background:rgba(20,22,42,.97);border:1px solid var(--ln);border-radius:10px;padding:9px 12px;max-width:300px;box-shadow:0 8px 28px #000a;z-index:5}
 #tip b{display:block}#tip em{display:block;font-style:normal;color:var(--mu);font-size:12px}
+#fitB{position:absolute;right:10px;top:10px;z-index:4;width:40px;height:40px;border-radius:10px;background:var(--pn);color:var(--tx);border:1px solid var(--ln);font-size:20px;cursor:pointer;padding:0}
 #hint{position:absolute;left:12px;bottom:8px;font-size:11px;color:var(--mu);pointer-events:none}
 #qr{background:#fff;padding:4px;border-radius:10px;width:180px;margin:10px auto;color:#000;font-size:12px}#qr svg{display:block;width:100%;height:auto}
 .don{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0}.don input{width:100px;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:8px;font:inherit;text-align:center}
@@ -74,7 +75,7 @@ button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln
 </div>
 <div id="model"><div class="mc"><label for="rt">Úrok z dluhu <b id="rl">3,0 %</b></label><input type="range" id="rt" min="15" max="70" value="30"></div><div class="mc"><label for="gt">Růst HDP <b id="gl">4,5 %</b></label><input type="range" id="gt" min="10" max="70" value="45"></div></div>
 <div id="main">
- <div id="stage"><div id="tip"></div><div id="hint">Klik = rozbalit · tažení = posun · kolečko / štípnutí = zoom</div></div>
+ <div id="stage"><div id="tip"></div><button id="fitB" title="Vycentrovat přehled" aria-label="Vycentrovat přehled">⤢</button><div id="hint">Klik = rozbalit · tažení = posun · kolečko / štípnutí = zoom</div></div>
  <nav id="tabs"><button class="g" data-v="graf">Graf</button><button data-v="an" class="on">Analýza</button><button data-v="kz">Kauzy</button><button data-v="set">Nastavení</button></nav>
  <aside id="side">
   <section class="pane" id="p-an">
@@ -115,7 +116,7 @@ const rgbOf=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const GAP=4,SC=.45,BASE_DEBT=3200,BASE_GDP=7800;let GDP_G=.045;
 let W=190,CG=64,P,V,debtNode,year=2024,rate=.03,debt=BASE_DEBT,gdp=BASE_GDP,panX=0,panY=0,zoom=1,mx=-1,my=-1,hover=null,bounds,cnv,showK=false,touched=false,S=[],base24={};
-const ptrs=new Map();let moved=false,start=null,lastPinch=null;
+const ptrs=new Map();let REL=new Set(),tgt=null;const dimA=n=>hover&&!REL.has(n)?.3:1;let moved=false,start=null,lastPinch=null;
 const HIST={2020:{p:1475.5,v:1842.9},2021:{p:1487.2,v:1906.9},2022:{p:1624,v:1985,approx:true},2023:{p:1914.1,v:2202.6}};
 const KAUZY=[
 {t:'Čapí hnízdo',s:'stát',n:['Strukturální a kohezní fondy'],w:'Andrej Babiš (ANO), Jana Nagyová (ANO)',st:'Nagyová: Městský soud ji 4. 5. 2026 uznal vinnou, Vrchní soud trest potvrdil. Babiš: Sněmovna ho v březnu 2026 nevydala ke stíhání. Oba vinu odmítají.',f:['Dotace','50 mil. Kč z fondů EU (vráceno 2018)'],u:'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704',l:'ČT24'},
@@ -194,11 +195,14 @@ function updateKpi(){const s=P.val-V.val;$('kP').textContent=fmt(P.val,0)+' mld.
 function refresh(){simulate();series();updateKpi();renderAn()}
 
 // ---------- rozložení grafu ----------
-function layout(n,x,y,dir){n.tx=dir<0?x-W:x;n.ty=y;n.th=n.val*SC;let sub=n.th;
-if(n.exp&&n.kids.length){const nx=dir<0?n.tx-CG:n.tx+W+CG;let cy=y,tot=0;for(const k of n.kids){const s=layout(k,nx,cy,dir);cy+=s+GAP;tot+=s+GAP}sub=Math.max(sub,tot-GAP)}
-n.sub=sub;bounds.l=Math.min(bounds.l,n.tx);bounds.r=Math.max(bounds.r,n.tx+W);bounds.t=Math.min(bounds.t,y);bounds.b=Math.max(bounds.b,y+sub);return sub}
-function doLayout(){bounds={l:1e9,t:1e9,r:-1e9,b:-1e9};layout(P,-CG/2,0,-1);layout(V,CG/2,0,1)}
-function fit(){touched=false;doLayout();const m=16,bw=bounds.r-bounds.l,bh=bounds.b-bounds.t;zoom=Math.min((width-2*m)/bw,(height-2*m)/bh,3);panX=(width-bw*zoom)/2-bounds.l*zoom;panY=(height-bh*zoom)/2-bounds.t*zoom}
+function measure(n){n.th=n.val*SC;n.ord=n.kids.length?n.kids.slice().sort((a,b)=>b.val-a.val):n.kids;let ct=0;
+if(n.exp&&n.kids.length){n.ord.forEach(k=>ct+=measure(k)+GAP);ct-=GAP}n.ct=ct;return n.sub=Math.max(n.th,ct)}
+function place(n,x,y,dir){n.tx=dir<0?x-W:x;n.ty=y+(n.sub-n.th)/2;
+bounds.l=Math.min(bounds.l,n.tx);bounds.r=Math.max(bounds.r,n.tx+W);bounds.t=Math.min(bounds.t,y);bounds.b=Math.max(bounds.b,y+n.sub);
+if(n.exp&&n.kids.length){const nx=dir<0?n.tx-CG:n.tx+W+CG;let cy=y+(n.sub-n.ct)/2;for(const k of n.ord){place(k,nx,cy,dir);cy+=k.sub+GAP}}}
+function doLayout(){bounds={l:1e9,t:1e9,r:-1e9,b:-1e9};measure(P);measure(V);place(P,-CG/2,-P.sub/2,-1);place(V,CG/2,-V.sub/2,1)}
+function fit(now){touched=false;doLayout();const m=16,bw=bounds.r-bounds.l,bh=bounds.b-bounds.t,z=Math.min((width-2*m)/bw,(height-2*m)/bh,3);tgt={z,x:(width-bw*z)/2-bounds.l*z,y:(height-bh*z)/2-bounds.t*z};if(now){zoom=tgt.z;panX=tgt.x;panY=tgt.y;tgt=null}}
+function camStep(){if(!tgt)return;zoom+=(tgt.z-zoom)*.2;panX+=(tgt.x-panX)*.2;panY+=(tgt.y-panY)*.2;if(Math.abs(tgt.z-zoom)<.002&&Math.abs(tgt.x-panX)<.5&&Math.abs(tgt.y-panY)<.5)tgt=null}
 function setAll(n,f,top){if(n.kids.length){n.exp=top?true:f;n.kids.forEach(k=>setAll(k,f))}if(!n.exp)resetInit(n)}
 function resetInit(n){n.kids.forEach(k=>{k.init=false;resetInit(k)})}
 
@@ -206,9 +210,9 @@ function resetInit(n){n.kids.forEach(k=>{k.init=false;resetInit(k)})}
 function setup(){
 const st=$('stage');cnv=createCanvas(Math.max(st.clientWidth,10),Math.max(st.clientHeight,10));cnv.parent('stage');
 pixelDensity(Math.min(window.devicePixelRatio||1,2));textFont('system-ui, sans-serif');
-initData();refresh();fit();setupInput();
+initData();refresh();fit(true);setupInput();
 new ResizeObserver(()=>{const w=st.clientWidth,h=st.clientHeight;if(w<10||h<10)return;
-W=w<600?140:190;CG=w<600?40:64;resizeCanvas(w,h);if(!touched)fit()}).observe(st);
+W=w<600?140:190;CG=w<600?40:64;resizeCanvas(w,h);if(!touched)fit(true)}).observe(st);
 $('yr').oninput=e=>{year=+e.target.value;$('yl').textContent=year+(HIST[year]&&HIST[year].approx?' (odhad)':'');refresh()};
 $('rt').oninput=e=>{rate=e.target.value/1000;$('rl').textContent=fmt(rate*100,1)+' %';refresh()};
 const go=v=>{document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))};
@@ -221,6 +225,7 @@ const afterFit=()=>{if(innerWidth<860)setView('graf')};
 const setP=(r,g)=>{rate=r;GDP_G=g;$('rt').value=r*1000;$('gt').value=g*1000;$('rl').textContent=fmt(r*100,1)+' %';$('gl').textContent=fmt(g*100,1)+' %';refresh()};
 $('gt').oninput=e=>{GDP_G=e.target.value/1000;$('gl').textContent=fmt(GDP_G*100,1)+' %';refresh()};
 document.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>setP(...b.dataset.sc.split(',').map(Number)));
+$('fitB').onclick=()=>fit();
 $('bAll').onclick=()=>{setAll(P,true,true);setAll(V,true,true);fit();afterFit()};
 $('bNone').onclick=()=>{setAll(P,false,true);setAll(V,false,true);fit();afterFit()};
 $('bFit').onclick=()=>{fit();afterFit()};
@@ -239,11 +244,12 @@ document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{sc=b.dataset.s;docu
 function pick(n,wx,wy){let f=null;if(wx>=n.x&&wx<=n.x+W&&wy>=n.y&&wy<=n.y+n.h)f=n;if(n.exp)for(const k of n.kids){const r=pick(k,wx,wy);if(r)f=r}return f}
 function draw(){background(11,12,21);doLayout();const wx=(mx-panX)/zoom,wy=(my-panY)/zoom;
 hover=(mx>=0&&!(ptrs.size&&moved))?(pick(P,wx,wy)||pick(V,wx,wy)):null;
-push();translate(panX,panY);scale(zoom);drawNode(P,-1);drawNode(V,1);pop();showTip()}
+REL=new Set();if(hover){for(let a=hover;a;a=a.parent)REL.add(a);const d=n=>{REL.add(n);if(n.exp)n.kids.forEach(d)};d(hover)}
+camStep();push();translate(panX,panY);scale(zoom);drawNode(P,-1);drawNode(V,1);pop();drawingContext.globalAlpha=1;showTip()}
 function drawNode(n,dir){
 if(!n.init){const p=n.parent;n.x=p?p.x:n.tx;n.y=p?p.y:n.ty;n.h=0;n.init=true}
 n.x+=(n.tx-n.x)*.2;n.y+=(n.ty-n.y)*.2;n.h+=(n.th-n.h)*.2;
-const rh=n.h*zoom;if(rh<.3)return;const[r,g,b]=n.rgb,hv=hover===n,hasK=showK&&n.kauzy,mob=width<600;
+const rh=n.h*zoom;if(rh<.3)return;drawingContext.globalAlpha=dimA(n);const[r,g,b]=n.rgb,hv=hover===n,hasK=showK&&n.kauzy,mob=width<600;
 if(rh<5){noStroke();fill(r,g,b,210);rect(n.x,n.y,W,n.h)}
 else{fill(r,g,b,hv?90:42);stroke(hv?color(255):color(r,g,b));strokeWeight((hv?2:1)/zoom);rect(n.x,n.y,W,n.h,Math.min(5,n.h/3))}
 if(rh>=(mob?22:17)){noStroke();textAlign(LEFT,TOP);textSize(12.5/zoom);
@@ -253,8 +259,8 @@ if(rh>=(mob?45:36)){fill(r,g,b);textSize(11.5/zoom);text(fmt(n.val,n.val<10?1:0)
 if(n.kids.length){fill(255,255,255,170);textAlign(RIGHT,TOP);textSize(12/zoom);text(n.exp?'▾':'▸',n.x+W-6/zoom,n.y+6/zoom)}
 if(hasK){fill(243,139,168);textAlign(RIGHT,TOP);textSize(12/zoom);text('⚠'+n.kauzy.length,n.x+W-(n.kids.length?22:6)/zoom,n.y+6/zoom)}}
 if(n.exp&&n.kids.length){const sx=dir>0?n.x+W:n.x;let off=0;
-for(const c of n.kids){if(c.h*zoom>=.3){const ex=dir>0?c.x:c.x+W,m=(sx+ex)/2,y0=n.y+off,y1=y0+c.h,c0=c.y,c1=c.y+c.h;
-noStroke();fill(c.rgb[0],c.rgb[1],c.rgb[2],hover===c?130:62);beginShape();vertex(sx,y0);bezierVertex(m,y0,m,c0,ex,c0);vertex(ex,c1);bezierVertex(m,c1,m,y1,sx,y1);endShape(CLOSE)}
+for(const c of n.ord){if(c.h*zoom>=.3){const ex=dir>0?c.x:c.x+W,m=(sx+ex)/2,y0=n.y+off,y1=y0+c.h,c0=c.y,c1=c.y+c.h;
+drawingContext.globalAlpha=dimA(c);noStroke();fill(c.rgb[0],c.rgb[1],c.rgb[2],hover===c?130:62);beginShape();vertex(sx,y0);bezierVertex(m,y0,m,c0,ex,c0);vertex(ex,c1);bezierVertex(m,c1,m,y1,sx,y1);endShape(CLOSE)}
 off+=c.h;drawNode(c,dir)}}}
 function showTip(){const t=$('tip');if(!hover){t.style.display='none';return}
 const n=hover,R=[`<b>${esc(n.name)}</b>${fmt(n.val,1)} mld. Kč`];
@@ -267,15 +273,15 @@ if(showK&&n.kauzy)n.kauzy.forEach(k=>R.push(`<em style="color:var(--bad)">⚠ ${
 t.innerHTML=R.join('');t.style.display='block';
 if(width>=600){let ty=ptrs.size>0?my-t.offsetHeight-20:my+16;t.style.left=Math.max(4,Math.min(mx+16,width-t.offsetWidth-4))+'px';t.style.top=Math.max(4,Math.min(ty,height-t.offsetHeight-4))+'px'}}
 
-function zoomAt(cx,cy,f){const nz=Math.min(14,Math.max(.08,zoom*f));f=nz/zoom;panX=cx-(cx-panX)*f;panY=cy-(cy-panY)*f;zoom=nz;touched=true}
+function zoomAt(cx,cy,f){const nz=Math.min(14,Math.max(.08,zoom*f));f=nz/zoom;panX=cx-(cx-panX)*f;panY=cy-(cy-panY)*f;zoom=nz;touched=true;tgt=null}
 function setupInput(){const el=cnv.elt;el.style.touchAction='none';
 const pos=e=>{const r=el.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}};
 el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);const p=pos(e);ptrs.set(e.pointerId,p);mx=p.x;my=p.y;if(ptrs.size===1){moved=false;start=p}else{moved=true;lastPinch=null}});
 el.addEventListener('pointermove',e=>{const p=pos(e);mx=p.x;my=p.y;if(!ptrs.has(e.pointerId))return;const old=ptrs.get(e.pointerId);ptrs.set(e.pointerId,p);
-if(ptrs.size===1){if(!moved&&Math.hypot(p.x-start.x,p.y-start.y)<6)return;moved=true;touched=true;panX+=p.x-old.x;panY+=p.y-old.y}
+if(ptrs.size===1){if(!moved&&Math.hypot(p.x-start.x,p.y-start.y)<6)return;moved=true;touched=true;tgt=null;panX+=p.x-old.x;panY+=p.y-old.y}
 else if(ptrs.size===2){const[a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y)||1,c={x:(a.x+b.x)/2,y:(a.y+b.y)/2};if(lastPinch){panX+=c.x-lastPinch.c.x;panY+=c.y-lastPinch.c.y;zoomAt(c.x,c.y,d/lastPinch.d)}lastPinch={d,c}}});
 el.addEventListener('pointerup',e=>{const tap=ptrs.size===1&&!moved,p=pos(e);ptrs.delete(e.pointerId);lastPinch=null;
-if(tap){const n=pick(P,(p.x-panX)/zoom,(p.y-panY)/zoom)||pick(V,(p.x-panX)/zoom,(p.y-panY)/zoom);if(n&&n.kids.length){n.exp=!n.exp;if(!n.exp)resetInit(n)}}
+if(tap){const n=pick(P,(p.x-panX)/zoom,(p.y-panY)/zoom)||pick(V,(p.x-panX)/zoom,(p.y-panY)/zoom);if(n&&n.kids.length){n.exp=!n.exp;if(!n.exp)resetInit(n);if(!touched)fit()}}
 if(!ptrs.size)moved=false});
 el.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);if(!ptrs.size)moved=false});
 el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')mx=-1});
