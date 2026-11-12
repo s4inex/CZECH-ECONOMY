@@ -45,6 +45,7 @@ button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln
 #hint{position:absolute;left:12px;bottom:8px;font-size:11px;color:var(--mu);pointer-events:none}
 #qr{background:#fff;padding:4px;border-radius:10px;width:180px;margin:10px auto;color:#000;font-size:12px}#qr svg{display:block;width:100%;height:auto}
 .don{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0}.don input{width:100px;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:8px;font:inherit;text-align:center}
+#model{display:flex;gap:20px;padding:6px 16px;background:var(--pn);border-bottom:1px solid var(--ln)}.mc{flex:1;min-width:0}.mc label{display:flex;justify-content:space-between;font-size:12px;color:var(--mu)}.mc b{color:var(--tx)}
 .sc{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}.sc .b{margin:0;padding:8px;font-size:12px}
 @media(max-width:859px){
  h1 small{display:none}header{padding:8px 12px}
@@ -54,6 +55,7 @@ button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln
  body[data-v=graf] #side,body:not([data-v=graf]) #stage{display:none}
  #tip{left:0!important;right:0;bottom:0;top:auto!important;max-width:none;border-radius:16px 16px 0 0;padding:16px;font-size:15px}
  #hint{display:none}
+ #kpi div{flex-basis:96px;padding:4px 10px}#kpi span{font-size:14px}#model{gap:14px;padding:4px 12px}h1{font-size:15px}
 }
 </style>
 </head>
@@ -70,6 +72,7 @@ button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln
  <div><small>Dluh / HDP</small><span id="kG"></span></div>
  <div><small>Úroky / příjmy</small><span id="kI"></span></div>
 </div>
+<div id="model"><div class="mc"><label for="rt">Úrok z dluhu <b id="rl">3,0 %</b></label><input type="range" id="rt" min="15" max="70" value="30"></div><div class="mc"><label for="gt">Růst HDP <b id="gl">4,5 %</b></label><input type="range" id="gt" min="10" max="70" value="45"></div></div>
 <div id="main">
  <div id="stage"><div id="tip"></div><div id="hint">Klik = rozbalit · tažení = posun · kolečko / štípnutí = zoom</div></div>
  <nav id="tabs"><button class="g" data-v="graf">Graf</button><button data-v="an" class="on">Analýza</button><button data-v="kz">Kauzy</button><button data-v="set">Nastavení</button></nav>
@@ -90,11 +93,9 @@ button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln
    <p class="note">Stav k 12. 11. 2026 podle zpravodajských zdrojů; před dalším šířením ověřte u aktuálních rozhodnutí soudů. Do pravomocného rozhodnutí platí presumpce neviny. Napojení na položky grafu je orientační.</p>
   </section>
   <section class="pane" id="p-set">
-   <h3>Model</h3>
-   <div class="row"><label for="rt">Úrok z dluhu</label><b id="rl">3,0 %</b></div>
-   <input type="range" id="rt" min="15" max="70" value="30">
-   <div class="row"><label for="gt">Růst HDP (nominální)</label><b id="gl">4,5 %</b></div>
-   <input type="range" id="gt" min="10" max="70" value="45">
+   <h3>Scénáře</h3>
+   
+   
    <div class="sc"><button class="b" data-sc="0.03,0.045">Základní</button><button class="b" data-sc="0.05,0.045">Vyšší úroky (5 %)</button><button class="b" data-sc="0.03,0.025">Pomalý růst HDP</button><button class="b" data-sc="0.025,0.055">Optimistický</button></div>
    <p class="note">Každá položka roste vlastním tempem, schodek navyšuje dluh. Jde o zjednodušený model, ne o oficiální prognózu.</p>
    <h3>Zobrazení grafu</h3>
