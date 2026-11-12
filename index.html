@@ -13,13 +13,13 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 body{display:flex;flex-direction:column}
 
-/* Mobilně optimalizovaná hlavička */
+/* Hlavička */
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: nowrap; }
 h1 { font-size: 16px; margin: 0; letter-spacing: .04em; white-space: nowrap; }
 .ctl { display: flex; flex-direction: column; font-size: 12px; color: var(--mut); }
 .ctl b { color: var(--tx); }
 .year-ctl { flex: 1; min-width: 100px; max-width: 300px; margin: 0 auto; }
-input[type=range] { width: 100%; accent-color: var(--acc); min-height: 24px; } /* Větší cíl pro dotyk */
+input[type=range] { width: 100%; accent-color: var(--acc); min-height: 24px; }
 
 /* Tlačítka */
 button { background: #1f2240; color: var(--tx); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
@@ -31,7 +31,7 @@ button:hover { border-color: var(--acc); }
 #bDonate { background: var(--acc); color: var(--bg); font-weight: 600; border-color: var(--acc); }
 #bDonate:hover { background: #b4befe; border-color: #b4befe; }
 
-/* Kompaktní KPI lišta */
+/* KPI lišta */
 #kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); }
 #kpi div { background: var(--bg); padding: 4px 10px; }
 #kpi small { display: block; color: var(--mut); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
@@ -94,12 +94,46 @@ canvas { display: block; }
 .kauza ul { margin: 6px 0 6px 20px; padding: 0; font-size: 13px; }
 .kauza a { color: var(--acc); }
 
-/* Responzivní skrývání textů na malých displejích */
+/* Responzivní mobilní zobrazení */
 @media (max-width: 600px) {
-  h1 { font-size: 14px; display: none; } /* Úplné skrytí nadpisu pro více místa na posuvník */
+  h1 { font-size: 14px; display: none; }
   #btns button .btn-text { display: none; }
-  #btns button { padding: 8px; font-size: 16px; }
-  #kpi { grid-template-columns: repeat(3, 1fr); }
+  #btns button { padding: 10px; font-size: 18px; }
+  
+  /* Horizontální scroll pro KPI na malých displejích */
+  #kpi {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+  #kpi div {
+    flex: 0 0 auto;
+    min-width: 120px;
+    scroll-snap-align: start;
+    border-right: 1px solid var(--line);
+  }
+
+  /* Spodní panel místo malého tooltipu na Canvasu (Bottom Sheet) */
+  #tip {
+    position: fixed;
+    top: auto !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    width: 100%;
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.8);
+    font-size: 15px;
+    background: rgba(20,21,36,0.98);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+  #tip b { font-size: 17px; margin-bottom: 6px; }
+  #tip em { font-size: 14px; margin-bottom: 4px; line-height: 1.4; }
 }
 </style>
 </head>
@@ -185,12 +219,13 @@ canvas { display: block; }
 
 <script>
 // ---------- konstanty a stav ----------
-const W = 190, CG = 64, GAP = 4, SC = 0.45;
+let W = window.innerWidth < 600 ? 140 : 190;
+let CG = window.innerWidth < 600 ? 40 : 64;
+const GAP = 4, SC = 0.45;
 const BASE_DEBT = 3200, BASE_GDP = 7800, GDP_G = 0.045;
 let P, V, debtNode, year = 2024, rate = 0.03, debt = BASE_DEBT, gdp = BASE_GDP;
 let panX = 0, panY = 0, zoom = 1, mx = -1, my = -1, hover = null, bounds, cnv;
 
-// Změna: Kauzy jsou defaultně skryty
 let showK = false; 
 
 const ptrs = new Map(); let moved = false, start = null, lastPinch = null;
@@ -409,16 +444,13 @@ function setup() {
   textFont('system-ui, sans-serif');
   initData(); simulate(); fit(); setupInput();
 
-  // Globální vstupy
   $('yr').oninput = e => { year = +e.target.value; $('yl').textContent = year + (HIST[year] && HIST[year].approx ? ' (odhad)' : ''); simulate(); };
   $('rt').oninput = e => { rate = e.target.value / 1000; $('rl').textContent = fmt(rate * 100, 1) + ' %'; simulate(); };
   
-  // Tlačítka ovlivňující zobrazení (přesunuta do Nastavení)
   $('bAll').onclick = () => { setAll(P, true, true); setAll(V, true, true); fit(); $('settingsModal').style.display = 'none'; };
   $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); $('settingsModal').style.display = 'none'; };
   $('bFit').onclick = () => { fit(); $('settingsModal').style.display = 'none'; };
 
-  // --- Modals obsluha ---
   const closeAllModals = () => {
     document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
   };
@@ -427,14 +459,12 @@ function setup() {
   $('closeSettings').onclick = closeAllModals;
   $('settingsModal').onclick = e => { if (e.target === $('settingsModal')) closeAllModals(); };
 
-  // Kauzy Toggle v Nastavení
   $('kToggle').checked = showK;
   $('kToggle').onchange = e => {
     showK = e.target.checked;
     $('bKauzyModalBtn').style.display = showK ? 'inline-flex' : 'none';
   };
 
-  // Kauzy rozhraní
   let kScope = '', kQ = '';
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const renderK = () => {
@@ -461,7 +491,6 @@ function setup() {
   $('closeK').onclick = closeAllModals;
   $('kauzyModal').onclick = e => { if (e.target === $('kauzyModal')) closeAllModals(); };
 
-  // Podpořit
   const myAccount = "275030807";
   const myBank = "0300";
   const updateQR = () => {
@@ -474,7 +503,14 @@ function setup() {
   $('donateModal').onclick = e => { if (e.target === $('donateModal')) closeAllModals(); };
   $('donAmt').oninput = updateQR;
 }
-function windowResized() { const st = $('stage'); resizeCanvas(st.clientWidth, st.clientHeight); }
+
+function windowResized() { 
+  const st = $('stage'); 
+  resizeCanvas(st.clientWidth, st.clientHeight);
+  W = window.innerWidth < 600 ? 140 : 190;
+  CG = window.innerWidth < 600 ? 40 : 64;
+  fit();
+}
 
 function pick(n, wx, wy) {
   let found = null;
@@ -507,22 +543,31 @@ function drawNode(n, dir) {
     fill(r, g, b, hv ? 90 : 42); stroke(hv ? color(255) : color(r, g, b)); strokeWeight((hv ? 2 : 1) / zoom);
     rect(n.x, n.y, W, n.h, Math.min(5, n.h / 3));
   }
-  if (rh >= 17) {
-    noStroke(); textAlign(LEFT, TOP); textSize(12.5 / zoom);
+  
+  let minRh = window.innerWidth < 600 ? 22 : 17;
+  if (rh >= minRh) {
+    noStroke(); textAlign(LEFT, TOP); textSize(Math.max(12, 12.5 / zoom));
+    
     const pad = 8 / zoom, av = W - pad * 2 - (n.kids.length ? 14 / zoom : 0) - (hasK ? 26 / zoom : 0);
     let l = n.name;
-    if (textWidth(l) > av) { while (l.length > 2 && textWidth(l + '…') > av) l = l.slice(0, -1); l += '…'; }
+    
+    let charLimit = Math.max(5, Math.floor(av / (7 / zoom))); 
+    if (l.length > charLimit) { l = l.slice(0, charLimit - 1) + '…'; }
+    
     fill(236, 237, 250); text(l, n.x + pad, n.y + 6 / zoom);
-    if (rh >= 36) {
-      fill(r, g, b); textSize(11.5 / zoom);
-      text(fmt(n.val, n.val < 10 ? 1 : 0) + ' mld. · ' + fmt(n.val / n.root.val * 100, 1) + ' %', n.x + pad, n.y + 22 / zoom);
+    
+    let detailRh = window.innerWidth < 600 ? 45 : 36;
+    if (rh >= detailRh) {
+      fill(r, g, b); textSize(Math.max(11, 11.5 / zoom));
+      text(fmt(n.val, n.val < 10 ? 1 : 0) + ' mld. · ' + fmt(n.val / n.root.val * 100, 1) + ' %', n.x + pad, n.y + 24 / zoom);
     }
-    if (n.kids.length) { fill(255, 255, 255, 170); textAlign(RIGHT, TOP); textSize(12 / zoom); text(n.exp ? '▾' : '▸', n.x + W - 6 / zoom, n.y + 6 / zoom); }
+    if (n.kids.length) { fill(255, 255, 255, 170); textAlign(RIGHT, TOP); textSize(Math.max(12, 12 / zoom)); text(n.exp ? '▾' : '▸', n.x + W - 6 / zoom, n.y + 6 / zoom); }
     if (hasK) {
-      fill(243, 139, 168); textAlign(RIGHT, TOP); textSize(12 / zoom);
+      fill(243, 139, 168); textAlign(RIGHT, TOP); textSize(Math.max(12, 12 / zoom));
       text('⚠' + n.kauzy.length, n.x + W - (n.kids.length ? 22 : 6) / zoom, n.y + 6 / zoom);
     }
   }
+  
   if (n.exp && n.kids.length) {
     const sx = dir > 0 ? n.x + W : n.x; let off = 0;
     for (const c of n.kids) {
@@ -548,7 +593,6 @@ function showTip() {
   if (showK && n.kauzy) n.kauzy.forEach(k => rows.push(`<em style="color:var(--bad)">⚠ ${k.title} – ${k.facts[0][0]}: ${k.facts[0][1]}</em>`));
   t.innerHTML = rows.join(''); t.style.display = 'block';
   
-  // Posun tooltipu mimo prst
   let targetX = mx + 16;
   let targetY = my + 16;
   if (ptrs.size > 0) { targetY = my - t.offsetHeight - 20; }
