@@ -2,105 +2,118 @@
 <html lang="cs">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <title>Interaktivní rozpočet ČR</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
 <style>
 :root{color-scheme:dark;--bg:#0d0e18;--panel:#151729;--line:#2a2d4a;--tx:#e6e7f7;--mut:#8b8fb5;--ok:#a6e3a1;--bad:#f38ba8;--acc:#89b4fa;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 
-/* Ovládání částky */
-.donate-controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
-.donate-controls label { color: var(--tx); font-weight: 600; }
-.donate-controls input {
-  background: var(--bg); color: var(--tx); border: 1px solid var(--line);
-  border-radius: 6px; padding: 6px 10px; width: 80px; font: inherit;
-  text-align: center; accent-color: var(--acc);
-}
-.donate-controls input:focus { outline: none; border-color: var(--acc); }
-
-/* Tlačítka */
-#bDonate { background: var(--acc); color: var(--bg); font-weight: 600; border-color: var(--acc); }
-#bDonate:hover { background: #b4befe; border-color: #b4befe; }
-#bK { border-color: var(--bad); }
-#bKT.off { opacity: .5; }
-
-/* Vyskakovací okna (Modal) */
-#donateModal, #kauzyModal {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100;
-  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
-}
-.modal-content {
-  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-  padding: 24px 24px 16px; max-width: 320px; text-align: center; position: relative;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-}
-.modal-content h2 { margin-top: 0; font-size: 18px; color: var(--acc); }
-.modal-content p { font-size: 14px; color: var(--tx); line-height: 1.5; margin-bottom: 16px; }
-.qr-placeholder { background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 16px; }
-.qr-placeholder img { max-width: 150px; border-radius: 8px; }
-.disclaimer { font-size: 11px !important; color: var(--mut) !important; margin-bottom: 0; }
-#closeModal, #closeK {
-  position: absolute; right: 12px; top: 8px; font-size: 24px; line-height: 1;
-  cursor: pointer; color: var(--mut); transition: color 0.2s;
-}
-#closeModal:hover, #closeK:hover { color: var(--bad); }
-
-/* Panel kauz */
-#kauzyBox { max-width: 820px; width: 94vw; max-height: 88vh; overflow-y: auto; text-align: left; }
-.kbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
-.kbar input { flex: 1; min-width: 140px; background: var(--bg); color: var(--tx); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; }
-.chip { padding: 3px 9px; font-size: 12px; border-radius: 999px; }
-.chip.on { background: var(--acc); color: var(--bg); border-color: var(--acc); }
-.kauza { border-top: 1px solid var(--line); padding: 12px 0; font-size: 13px; line-height: 1.45; }
-.kauza h3 { margin: 0 0 2px; font-size: 15px; color: var(--bad); }
-.kauza .tag { font-size: 10px; font-weight: 400; color: var(--mut); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
-.kauza .meta { color: var(--mut); font-size: 12px; }
-.kauza p { font-size: 13px !important; margin: 6px 0 !important; }
-.kauza table { border-collapse: collapse; width: 100%; margin: 6px 0; }
-.kauza td { border-top: 1px solid var(--line); padding: 4px 6px; vertical-align: top; font-size: 12.5px; }
-.kauza td:first-child { color: var(--mut); width: 36%; }
-.kauza td:last-child { color: var(--tx); }
-.kauza details { margin: 4px 0; }
-.kauza summary { cursor: pointer; color: var(--acc); font-size: 12.5px; }
-.kauza ul { margin: 4px 0 4px 18px; padding: 0; font-size: 12.5px; }
-.kauza a { color: var(--acc); }
-
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 body{display:flex;flex-direction:column}
-header{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
-h1{font-size:16px;margin:0;letter-spacing:.04em}
-.ctl{display:flex;flex-direction:column;font-size:12px;color:var(--mut);min-width:130px}
-.ctl b{color:var(--tx)}
-input[type=range]{width:100%;accent-color:var(--acc)}
-button{background:#1f2240;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;cursor:pointer}
-button:hover{border-color:var(--acc)}
-#btns{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
-#kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
-#kpi div{background:var(--bg);padding:6px 12px}
-#kpi small{display:block;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
-#kpi span{font-size:17px;font-weight:600}
-#stage{flex:1;min-height:0;position:relative}
-canvas{display:block}
-#tip{position:absolute;display:none;pointer-events:none;background:rgba(20,21,36,.96);border:1px solid var(--line);border-radius:8px;padding:8px 11px;max-width:280px;box-shadow:0 6px 24px #000a;font-size:13px}
-#tip b{display:block;margin-bottom:2px}
-#tip em{color:var(--mut);font-style:normal;font-size:12px;display:block}
-#hint{position:absolute;left:10px;bottom:8px;right:10px;font-size:11px;color:var(--mut);pointer-events:none;text-shadow:0 0 6px var(--bg),0 0 6px var(--bg)}
+
+/* Mobilně optimalizovaná hlavička */
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: nowrap; }
+h1 { font-size: 16px; margin: 0; letter-spacing: .04em; white-space: nowrap; }
+.ctl { display: flex; flex-direction: column; font-size: 12px; color: var(--mut); }
+.ctl b { color: var(--tx); }
+.year-ctl { flex: 1; min-width: 100px; max-width: 300px; margin: 0 auto; }
+input[type=range] { width: 100%; accent-color: var(--acc); min-height: 24px; } /* Větší cíl pro dotyk */
+
+/* Tlačítka */
+button { background: #1f2240; color: var(--tx); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+button:hover { border-color: var(--acc); }
+#btns { display: flex; gap: 6px; flex-wrap: nowrap; }
+#bKauzyModalBtn { border-color: var(--bad); color: var(--bad); }
+#bSettings { background: transparent; border-color: transparent; }
+#bSettings:hover { background: rgba(255,255,255,0.05); }
+#bDonate { background: var(--acc); color: var(--bg); font-weight: 600; border-color: var(--acc); }
+#bDonate:hover { background: #b4befe; border-color: #b4befe; }
+
+/* Kompaktní KPI lišta */
+#kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); }
+#kpi div { background: var(--bg); padding: 4px 10px; }
+#kpi small { display: block; color: var(--mut); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
+#kpi span { font-size: 15px; font-weight: 600; }
+
+/* Canvas oblast */
+#stage { flex: 1; min-height: 0; position: relative; }
+canvas { display: block; }
+#tip { position: absolute; display: none; pointer-events: none; background: rgba(20,21,36,.96); border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; max-width: 280px; box-shadow: 0 6px 24px #000a; font-size: 13px; z-index: 50; }
+#tip b { display: block; margin-bottom: 2px; }
+#tip em { color: var(--mut); font-style: normal; font-size: 12px; display: block; }
+#hint { position: absolute; left: 10px; bottom: 8px; right: 10px; font-size: 11px; color: var(--mut); pointer-events: none; text-shadow: 0 0 6px var(--bg), 0 0 6px var(--bg); }
+
+/* Vyskakovací okna (Modals) */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.modal-content { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 24px; width: 90vw; max-width: 360px; max-height: 90vh; overflow-y: auto; text-align: center; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+.modal-content h2 { margin-top: 0; font-size: 18px; color: var(--acc); margin-bottom: 20px; }
+.modal-content p { font-size: 14px; color: var(--tx); line-height: 1.5; margin-bottom: 16px; }
+.close-btn { position: absolute; right: 16px; top: 12px; font-size: 28px; line-height: 1; cursor: pointer; color: var(--mut); transition: color 0.2s; }
+.close-btn:hover { color: var(--bad); }
+
+/* Nastavení prvky */
+.setting-group { margin-bottom: 20px; text-align: left; }
+.setting-group label { display: block; margin-bottom: 6px; color: var(--mut); font-size: 13px; }
+.setting-group b { color: var(--tx); font-size: 14px; }
+.toggle-group { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 8px 0; }
+.toggle-group label { margin-bottom: 0; cursor: pointer; color: var(--tx); font-size: 14px; font-weight: 500; }
+.toggle-group input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--acc); cursor: pointer; margin: 0; }
+.divider { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+.action-buttons { display: flex; flex-direction: column; gap: 10px; }
+.action-buttons button { width: 100%; padding: 12px; font-weight: 600; justify-content: center; }
+
+/* Dary okno */
+.donate-controls { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.donate-controls label { color: var(--tx); font-weight: 600; }
+.donate-controls input { background: var(--bg); color: var(--tx); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; width: 90px; font: inherit; text-align: center; accent-color: var(--acc); }
+.donate-controls input:focus { outline: none; border-color: var(--acc); }
+.qr-placeholder { background: var(--bg); padding: 16px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 16px; }
+.qr-placeholder img { max-width: 150px; border-radius: 8px; }
+.disclaimer { font-size: 11px !important; color: var(--mut) !important; margin-bottom: 0; }
+
+/* Panel kauz */
+#kauzyBox { max-width: 820px; width: 94vw; max-height: 88vh; text-align: left; }
+.kbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+.kbar input { flex: 1; min-width: 140px; background: var(--bg); color: var(--tx); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; }
+.chip { padding: 6px 12px; font-size: 13px; border-radius: 999px; }
+.chip.on { background: var(--acc); color: var(--bg); border-color: var(--acc); }
+#kList { max-height: calc(88vh - 160px); overflow-y: auto; padding-right: 4px; }
+.kauza { border-top: 1px solid var(--line); padding: 16px 0; font-size: 13px; line-height: 1.45; }
+.kauza h3 { margin: 0 0 4px; font-size: 16px; color: var(--bad); }
+.kauza .tag { font-size: 11px; font-weight: 400; color: var(--mut); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; margin-left: 8px; vertical-align: middle; }
+.kauza .meta { color: var(--mut); font-size: 12px; }
+.kauza p { font-size: 13.5px !important; margin: 8px 0 !important; }
+.kauza table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+.kauza td { border-top: 1px solid var(--line); padding: 6px 8px; vertical-align: top; font-size: 13px; }
+.kauza td:first-child { color: var(--mut); width: 36%; }
+.kauza td:last-child { color: var(--tx); }
+.kauza details { margin: 6px 0; }
+.kauza summary { cursor: pointer; color: var(--acc); font-size: 13px; padding: 4px 0; }
+.kauza ul { margin: 6px 0 6px 20px; padding: 0; font-size: 13px; }
+.kauza a { color: var(--acc); }
+
+/* Responzivní skrývání textů na malých displejích */
+@media (max-width: 600px) {
+  h1 { font-size: 14px; display: none; } /* Úplné skrytí nadpisu pro více místa na posuvník */
+  #btns button .btn-text { display: none; }
+  #btns button { padding: 8px; font-size: 16px; }
+  #kpi { grid-template-columns: repeat(3, 1fr); }
+}
 </style>
 </head>
 <body>
 <header>
-  <h1>ROZPOČET ČR</h1>
-  <div class="ctl"><label>Rok: <b id="yl">2024</b></label><input type="range" id="yr" min="2020" max="2050" value="2024"></div>
-  <div class="ctl"><label>Úrok z dluhu: <b id="rl">3,0 %</b></label><input type="range" id="rt" min="15" max="70" value="30"></div>
+  <h1>ROZPOČET</h1>
+  <div class="ctl year-ctl">
+    <label>Rok: <b id="yl">2024</b></label>
+    <input type="range" id="yr" min="2020" max="2050" value="2024">
+  </div>
   <div id="btns">
-    <button id="bAll">Rozbalit vše</button>
-    <button id="bNone">Sbalit</button>
-    <button id="bFit">Celý přehled</button>
-    <button id="bKT" title="Zobrazit/skrýt odznaky ⚠ u položek">⚠ Odznaky</button>
-    <button id="bK">⚠ Kauzy</button>
-    <button id="bDonate">❤️ Podpořit</button>
+    <button id="bKauzyModalBtn" style="display:none;" title="Kauzy">⚠ <span class="btn-text">Kauzy</span></button>
+    <button id="bSettings" title="Nastavení">⚙️ <span class="btn-text">Nastavení</span></button>
+    <button id="bDonate" title="Podpořit">❤️ <span class="btn-text">Podpořit</span></button>
   </div>
 </header>
 <div id="kpi">
@@ -112,55 +125,80 @@ canvas{display:block}
 </div>
 <div id="stage">
   <div id="tip"></div>
-  <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · kolečko / štípnutí = zoom · ⚠ = navázaná kauza (tooltip = klíčové číslo, tlačítko „Kauzy“ = čísla, průběh, osoby, zdroje). 2020–2023: součty skutečnosti dle MF ČR (2022 dopočteno), vnitřní členění je přeškálované z roku 2024. Čísla v mld. Kč jsou orientační odhady, ne oficiální data; růst je zjednodušený model.</div>
+  <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · štípnutí = zoom · ⚠ = kauza (aktivace v Nastavení)</div>
 </div>
 
-<div id="donateModal" style="display:none;">
+<!-- Nastavení Modal -->
+<div id="settingsModal" class="modal-overlay" style="display:none;">
   <div class="modal-content">
-    <span id="closeModal">&times;</span>
+    <span id="closeSettings" class="close-btn">&times;</span>
+    <h2>Nastavení a ovládání</h2>
+    
+    <div class="setting-group">
+      <label>Modelovaný úrok z dluhu: <b id="rl">3,0 %</b></label>
+      <input type="range" id="rt" min="15" max="70" value="30">
+    </div>
+    
+    <div class="setting-group toggle-group">
+      <label for="kToggle">Zobrazit politické kauzy (⚠)</label>
+      <input type="checkbox" id="kToggle">
+    </div>
+    
+    <hr class="divider">
+    
+    <div class="action-buttons">
+      <button id="bAll">Rozbalit všechny větve</button>
+      <button id="bNone">Sbalit na základní skupiny</button>
+      <button id="bFit">Vystředit celý přehled</button>
+    </div>
+  </div>
+</div>
+
+<!-- Podpořit Modal -->
+<div id="donateModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <span id="closeModal" class="close-btn">&times;</span>
     <h2>Podpořit projekt</h2>
     <p>Tento web dělám ve volném čase. Pokud vám přijde užitečný, můžete mi na jeho provoz a kávu poslat dobrovolný dar.</p>
-
     <div class="donate-controls">
       <label for="donAmt">Částka (Kč):</label>
       <input type="number" id="donAmt" value="20" min="1" step="1">
     </div>
-
     <div class="qr-placeholder">
       <img id="qrImg" src="" alt="QR kód se načítá...">
       <p>Číslo účtu:<br><strong id="accNum">Načítám...</strong></p>
     </div>
-
     <p class="disclaimer">Jedná se o dobrovolný dar bez protiplnění. Děkuji!</p>
   </div>
 </div>
 
-<div id="kauzyModal" style="display:none;">
+<!-- Kauzy Modal -->
+<div id="kauzyModal" class="modal-overlay" style="display:none;">
   <div class="modal-content" id="kauzyBox">
-    <span id="closeK">&times;</span>
+    <span id="closeK" class="close-btn">&times;</span>
     <h2>Kauzy a rozpočet <span id="kCount" class="meta"></span></h2>
-    <div class="kbar"><input id="kSearch" placeholder="Hledat jméno, stranu, kauzu…"><button class="chip on" data-s="">Vše</button><button class="chip" data-s="stát">Stát</button><button class="chip" data-s="kraj">Kraj</button><button class="chip" data-s="město">Město</button><button class="chip" data-s="bez vazby">Bez vazby na rozpočet</button></div>
+    <div class="kbar"><input id="kSearch" placeholder="Hledat jméno, stranu, kauzu…"><button class="chip on" data-s="">Vše</button><button class="chip" data-s="stát">Stát</button><button class="chip" data-s="kraj">Kraj</button><button class="chip" data-s="město">Město</button><button class="chip" data-s="bez vazby">Mimo rozpočet</button></div>
     <div id="kList"></div>
-    <p class="disclaimer">Stav k 12. 11. 2026 podle zpravodajských zdrojů; před dalším šířením ověřte u aktuálních rozhodnutí soudů. Dokud rozhodnutí není pravomocné, platí presumpce neviny. Výběr není úplný (jde o případy, které se podařilo dohledat a doložit), seznam je napříč stranami. Napojení na položky grafu je orientační; u městských a krajských kauz nejde o přímé výdaje státního rozpočtu.</p>
+    <p class="disclaimer">Stav k 12. 11. 2026 podle zpravodajských zdrojů; před dalším šířením ověřte u aktuálních rozhodnutí soudů. Dokud rozhodnutí není pravomocné, platí presumpce neviny. Napojení na položky grafu je orientační; u městských a krajských kauz nejde o přímé výdaje státního rozpočtu.</p>
   </div>
 </div>
 
 <script>
 // ---------- konstanty a stav ----------
-const W = 190, CG = 64, GAP = 4, SC = 0.45;      // šířka bloku, mezera sloupců, mezera řádků, mld. Kč -> px
+const W = 190, CG = 64, GAP = 4, SC = 0.45;
 const BASE_DEBT = 3200, BASE_GDP = 7800, GDP_G = 0.045;
 let P, V, debtNode, year = 2024, rate = 0.03, debt = BASE_DEBT, gdp = BASE_GDP;
 let panX = 0, panY = 0, zoom = 1, mx = -1, my = -1, hover = null, bounds, cnv;
-let showK = true;
+
+// Změna: Kauzy jsou defaultně skryty
+let showK = false; 
+
 const ptrs = new Map(); let moved = false, start = null, lastPinch = null;
 const $ = id => document.getElementById(id);
 const fmt = (v, d = 1) => new Intl.NumberFormat('cs-CZ', {minimumFractionDigits: d, maximumFractionDigits: d}).format(v);
 const rgbOf = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16));
 
-// ---------- historická data (skutečnost státního rozpočtu, mld. Kč) ----------
-// Zdroj: MF ČR, státní závěrečné účty. Rok 2022: výdaje dopočteny z meziročního růstu 2023 (+218 mld.),
-// příjmy ze schodku 360,4 mld. -> označeno jako odhad. Rozpad na podpoložky za minulé roky tu není,
-// strom z roku 2024 se proporcionálně přeškáluje na skutečné součty.
+// ---------- historická data ----------
 const HIST = {
   2020: {p: 1475.5, v: 1842.9},
   2021: {p: 1487.2, v: 1906.9},
@@ -168,9 +206,7 @@ const HIST = {
   2023: {p: 1914.1, v: 2202.6}
 };
 
-// ---------- kauzy napojené na položky rozpočtu ----------
-// Stav k 12. 11. 2026. U každé kauzy je uveden stav řízení; neuvedené = nerozhodnuto.
-// nodes = názvy položek stromu, ke kterým se kauza váže (odznak ⚠ se propaguje i na rodiče).
+// ---------- kauzy ----------
 const KAUZY = [
   { id: 'capi', title: 'Čapí hnízdo', scope: 'stát', nodes: ['Strukturální a kohezní fondy'],
     who: 'Andrej Babiš (ANO), Jana Nagyová (ANO)',
@@ -185,131 +221,70 @@ const KAUZY = [
       ['březen 2026', 'Sněmovna Babiše nevydala'], ['4. 5. 2026', 'Nagyová uznána vinnou (podmínka a peněžitý trest), potvrzeno Vrchním soudem']],
     people: [['Andrej Babiš', 'ANO, premiér', 'stíhání přerušeno; vinu odmítá, proces označuje za politický'],
       ['Jana Nagyová', 'ANO, europoslankyně', 'uznána vinnou, podmínka a peněžitý trest']],
-    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704'], ['Blesk – přehled 2025', 'https://www.blesk.cz/clanek/829290']] },
-
+    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704']] },
   { id: 'agrofert', title: 'Střet zájmů a dotace holdingu Agrofert', scope: 'stát', nodes: ['Společná zemědělská politika', 'Strukturální a kohezní fondy'],
     who: 'Andrej Babiš (ANO)',
-    status: 'Audit Evropské komise shledal střet zájmů. Česko nemuselo vracet peníze do Bruselu, ale část projektů už stát proplatil sám. V roce 2026 Komise dál žádá záruky, že dotace pro holding zůstanou zmrazené.',
-    facts: [['Vyplaceno z projektů kritizovaných auditem', 'min. 155 mil. Kč ze státní pokladny'],
-      ['Návrh auditu (Deník N)', '451 mil. Kč k vrácení; ve finální zprávě Komise Česku vracení do Bruselu neuložila'],
-      ['Dotace na výrobu toustového chleba', '100 mil. Kč; Komise ji neproplatila, platil český rozpočet'],
-      ['Fatra', '547 tis. Kč vyplaceno státem navzdory auditu; žádost o proplacení Komise zamítla'],
-      ['Schválená částka pro holding (Seznam Zprávy)', 'cca 250 mil. Kč; ministr: symbolická částka']],
-    time: [['2017', 'novela zákona o střetu zájmů, Babiš vkládá firmy do svěřenských fondů'],
-      ['2021', 'finální zpráva auditu: Babiš stále ovládá Agrofert, je ve střetu zájmů'],
-      ['11. 3. 2026', 'Komise žádá ujištění, že dotace pro Agrofert jsou zmrazené'],
-      ['26. 5. 2026', 'odpověď českých úřadů Komisi nestačila, dotace neproplatí']],
-    people: [['Andrej Babiš', 'ANO, premiér', 'audit označuje za účelový a zmanipulovaný'], ['Agrofert', 'holding', 'se závěry auditu nesouhlasí']],
-    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-ujistili-eu-ze-dotace-pro-agrofert-jsou-zmrazeny-vzapeti-miliardy-uvolnili-305430'],
-      ['ČT24 (toustová dotace)', 'https://ct24.ceskatelevize.cz/domaci/3312915-168-hodin-ministerstva-brani-agrofert-pred-vracenim-toustove-dotace-vznika-uz-sedmy']] },
-
-  { id: 'rath', title: 'Kauza Rath (zakázky kraje a nemocnic)', scope: 'kraj', nodes: ['Dotace krajům', 'Dotace nemocnicím'],
-    who: 'David Rath (ČSSD, tehdy středočeský hejtman) a další',
-    status: 'Rath je pravomocně odsouzen v obou větvích kauzy, Ústavní soud jeho stížnosti odmítl. Rath proces označuje za zpolitizovaný.',
-    facts: [['Objem zakázek', 'přes 700 mil. Kč (kraj a krajské nemocnice)'], ['Hotovost při zadržení', '7 mil. Kč (v krabici od vína)'],
-      ['1. větev', '7 let vězení, peněžitý trest 10 mil. Kč, 7 let zákaz funkcí (zakázka zámek Buštěhrad)'],
-      ['2. větev', 'trest prodloužen o rok na 8 let, peněžitý trest 18 mil. Kč'],
-      ['Další tresty', 'Metrostav: 10 mil. Kč a 3 roky zákazu zakázek; jeho náměstek Jiří Anděl 5 let; Kottovi: o rok nižší tresty (soud 1. instance 8,5 roku)']],
-    time: [['14. 5. 2012', 'Rath zadržen u domu ředitelky kladenské nemocnice'], ['2. pol. 2010s', 'pravomocný 7letý trest (1. větev)'],
-      ['leden 2020', 'Krajský soud ve 2. větvi dává 8 let'], ['červen 2022', 'odvolání ve 2. větvi u Vrchního soudu'],
-      ['2022', 'podmíněně propuštěn z vězení'], ['později', 'výzva k nástupu do vězení po pravomocném odsouzení ve 2. větvi, Ústavní soud stížnosti odmítl']],
-    people: [['David Rath', 'ČSSD, ex-hejtman', 'pravomocně odsouzen (7 + 1 rok), peněžité tresty 10 a 18 mil. Kč'],
-      ['Petr a Kateřina Kottovi', 'bývalý poslanec ODS, ředitelka nemocnice', 'odsouzeni, vysoké tresty a pokuty'], ['Jiří Anděl', 'Metrostav', '5 let nepodmíněně a 250 tis. Kč']],
-    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/david-rath/'], ['ČT24 – druhá větev', 'https://ct24.ceskatelevize.cz/clanek/domaci/soud-v-druhe-vetvi-rathovy-korupcni-kauzy-prodlouzil-exhejtmanovi-vezeni-o-rok-kottovym-o-dva-54090']] },
-
-  { id: 'necas', title: 'Trafiky pro poslance ODS a Nagygate (2013)', scope: 'stát', nodes: ['Dividendy a odvody státních podniků', 'Ústavní orgány a úřady'],
-    who: 'Petr Nečas (ODS), Jana Nečasová (dříve Nagyová), Roman Boček',
-    status: 'Trafiky: pravomocně odsouzen Nečas i Boček, kauza po 13 letech skončila odmítnutím ústavní stížnosti. Nagygate: Nečasová dostala podmínku, zbytek trestu jí prominul prezident Zeman.',
-    facts: [['Trest Nečase (trafiky)', '2,5 roku podmíněně, zkušební doba 4 roky, pokuta 1 mil. Kč (zahrnuje předchozí odsouzení)'],
-      ['Podstata', 'poslancům ODS (Šnajdr, Fuksa, Tejc) se slibovaly lukrativní funkce za vzdání se mandátu a hlasy pro daňový balíček'],
-      ['Získané posty', 'Šnajdr předseda dozorčí rady Čepra, Fuksa člen představenstva Českého Aeroholdingu'],
-      ['Dary Nagyové (obvinění, krácení daní)', '7 náhrdelníků za více než 3 mil. Kč, 4 hodinky za téměř 1,2 mil. Kč, 3 kožichy za přes 1 mil. Kč'],
-      ['Zneužití Vojenského zpravodajství', 'podmínky pro Nečasovou a bývalé zpravodajce; Nečas dostal trest za křivou výpověď ve prospěch manželky']],
-    time: [['13.–15. 6. 2013', 'razie na Úřadu vlády, vazba pro Nagyovou a zpravodajce'], ['17. 6. 2013', 'Nečas podává demisi a končí v čele ODS'],
-      ['2019', 'Nečas odsouzen trestním příkazem za křivou výpověď'], ['2020', 'soud ho v trafikách zprostil'], ['2021', 'Nejvyšší soud osvobození zrušil'],
-      ['později', 'odvolací soud potvrdil podmínku a pokutu, Nejvyšší soud dovolání odmítl'], ['2026', 'Ústavní soud odmítl stížnost Bočka, kauza skončila']],
-    people: [['Petr Nečas', 'ODS, ex-premiér', 'pravomocně odsouzen, podmínka a pokuta 1 mil. Kč'], ['Jana Nečasová (Nagyová)', 'bývalá ředitelka kabinetu premiéra', 'odsouzena v trafikách; ve větvi Vojenského zpravodajství podmínka, zbytek prominut'],
-      ['Roman Boček', 'bývalý náměstek ministra zemědělství', 'podmínka a peněžitý trest, stížnost odmítl Ústavní soud']],
-    src: [['Seznam Zprávy – konec trafik', 'https://www.seznamzpravy.cz/clanek/domaci-zivot-v-cesku-kauza-trafik-pro-exposlance-skoncila-ustavni-soud-odmitl-stiznost-303905'],
-      ['CNN Prima – přehled případu', 'https://cnn.iprima.cz/prehledne-o-pripadu-nagyova-o-co-jde-v-nejvybusnejsi-kauze-po-listopadu-1989-353854']] },
-
-  { id: 'dozimetr', title: 'Dozimetr (pražský dopravní podnik, VZP)', scope: 'město', nodes: ['Dotace obcím', 'Platby za státní pojištěnce'],
-    who: 'Petr Hlubuček (dříve STAN), Michal Redl, Marek Šnajdr (exposlanec ODS) a další',
-    status: 'Probíhá hlavní líčení; Redl a Hlubuček vinu odmítají. Část podnikatelů se přiznala a dostala pokuty dohodou. Sněmovna v březnu 2026 zřídila vyšetřovací komisi. Jde hlavně o městské peníze Prahy a o VZP, ne o přímé výdaje státního rozpočtu.',
-    facts: [['Navržené tresty (červen 2026)', 'Redl 10 let, Hlubuček 8 let'], ['Dohody o vině a trestu', 'Nemrah pokuta 3 mil. Kč, Dovhomilja 2 mil. Kč, Špringl 4,5 mil. Kč (firma Analogia 3,5 mil. Kč) za úplatek 100 tis. Kč'],
-      ['Další větev', 'obviněno 13 lidí a 4 firmy (NCOZ)'], ['Šnajdr', 'v dubnu 2026 se žalobce rozhodl poslat exposlance ODS k soudu; spoluobvinění Knížek a Dovhomilja se přiznali'],
-      ['Vyšetřovací komise', '13 členů, zřízena 25. 3. 2026, má za rok prověřit vazby v DPP a VZP'], ['Tvrzení spolupracujícího obviněného', 'část peněz měla jít na TOP 09 a STAN; Redl to popírá']],
-    time: [['červen 2022', 'razie NCOZ, rezignuje náměstek primátora Hlubuček, odchází ministr školství Gazdík (STAN) a šéf civilní rozvědky Mlejnek'], ['duben 2025', 'první tresty dohodou'],
-      ['2025', 'začíná hlavní líčení, Augustín spolupracuje'], ['25. 3. 2026', 'Sněmovna zřizuje vyšetřovací komisi'], ['červen 2026', 'výslechy svědků (např. Scheinherr), žalobce navrhl tresty']],
-    people: [['Petr Hlubuček', 'dříve STAN, ex-náměstek primátora', 'obžalován, vinu odmítá (navrhováno 8 let)'], ['Michal Redl', 'podnikatel', 'obžalován jako hlava skupiny, vinu odmítá (navrhováno 10 let)'],
-      ['Marek Šnajdr', 'ODS, exposlanec', 'obžalován (duben 2026)'], ['Matej Augustín', 'bývalý ekonomický náměstek DPP', 'spolupracuje s vyšetřovateli']],
-    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/michal-redl-1705'], ['ČT24 – kauza Dozimetr', 'https://ct24.ceskatelevize.cz/tema/kauza-dozimetr-1723']] },
-
-  { id: 'bitcoin', title: 'Bitcoinový dar ministerstvu spravedlnosti', scope: 'stát', nodes: ['Spravedlnost', 'Ostatní nedaňové'],
-    who: 'Pavel Blažek (ODS), Radomír Daňhel, Kárim Titz, Tomáš Jiřikovský',
-    status: 'Obžalováni jsou čtyři lidé včetně Blažka, všichni vinu popírají. Řízení před soudem zatím neskončilo.',
-    facts: [['Dar', '468 bitcoinů, téměř 1 mld. Kč'], ['Vydraženo', '235 BTC za 446,6 mil. Kč; dalších 233 BTC uloženo u úřadu pro zastupování státu'],
-      ['Nabídka advokáta Titze (dle médií)', 'justice získá 30 % z bitcoinů v peněžence klienta, pokud ji otevře'], ['Náklady na experty v kauze', 'zhruba 7,3 mil. Kč'], ['Návrh žalobkyně pro Blažka', '6,5 roku vězení'],
-      ['Dárce', 'Jiřikovský odsouzen 2017 na 9 let (zpronevěra, drogy, zbraně), 2021 podmíněně propuštěn']],
-    time: [['březen 2025', 'ministerstvo přijímá dar'], ['květen 2025', 'dar se zveřejní, 30. 5. Blažek podává demisi'], ['14.–17. 8. 2025', 'Jiřikovský zadržen, obviněn a poslán do vazby'],
-      ['květen 2026', 'policie obviňuje Blažka, Daňhela a Titze'], ['léto 2026', 'NCOZ končí vyšetřování, obžaloba na čtyři lidi']],
-    people: [['Pavel Blažek', 'ODS, ex-ministr spravedlnosti', 'obžalován, vinu popírá'], ['Radomír Daňhel', 'ex-náměstek ministra', 'obžalován, vinu popírá'],
-      ['Kárim Titz', 'advokát dárce', 'obžalován'], ['Tomáš Jiřikovský', 'dárce', 'obžalován (legalizace výnosů), ve vazbě']],
-    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/tomas-jirikovsky-99489'], ['Blesk – přehled 2025', 'https://www.blesk.cz/clanek/829290']] },
-
-  { id: 'autostrada', title: 'Autostráda (silniční zakázky Olomouckého kraje)', scope: 'kraj', nodes: ['Silnice II. a III. třídy', 'Dotace krajům'],
-    who: 'Michal Zácha (tehdy ODS), Robert Knobloch (lobbista, ex-ODS), manažeři stavebních firem a krajské správy silnic',
-    status: 'NCOZ navrhla obžalovat osm lidí a jednu firmu; žalobce má pro Záchu žádat 7 let. První obvinění uznali vinu a část dohodla trest. Rozšířená část o zakázce v Kostelci na Hané není uzavřena.',
-    facts: [['Úplatky podle obvinění', 'přes 46 mil. Kč u deseti zakázek'], ['Zakázka Unčovice–Litovel', 'přes 87 mil. Kč, úplatek pro Záchu 400 tis. Kč'], ['Zakázka Kostelec na Hané–Lešany–Zdětín', 'úplatek nejméně 20 mil. Kč'],
-      ['Počet obviněných', '13 lidí (listopad 2023)'], ['Horní sazba', 'až 12 let za přijetí úplatku nebo zneužití pravomoci'], ['Kód pro úplatky (dle policie)', '2 slivovice = 200 tis. Kč']],
-    time: [['listopad 2023', 'razie NCOZ, 13 obviněných, Knobloch ve vazbě (kauce 1 mil. Kč)'], ['listopad 2024', 'rozšíření o zakázku v Kostelci na Hané'], ['2026', 'návrh obžaloby, dohody o trestu u části obviněných']],
-    people: [['Michal Zácha', 'ODS, ex-náměstek hejtmana', 'rezignoval a vystoupil z ODS; žalobce má žádat 7 let'], ['Robert Knobloch', 'lobbista, ex-ODS', 'obviněn, ve vazbě (kauce 1 mil. Kč)']],
-    src: [['Seznam Zprávy – kódy', 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-policie-politici-ods-pouzivali-pro-uplatky-kody-2-slivovice-200-tisic-239879'], ['ČT24 – téma Zácha', 'https://ct24.ceskatelevize.cz/tema/michal-zacha-10262']] },
-
-  { id: 'opencard', title: 'Opencard (pražská městská karta)', scope: 'město', nodes: ['Dotace obcím'],
-    who: 'Bohuslav Svoboda (ODS), Tomáš Hudeček (TOP 09), pražští radní a úředníci',
-    status: 'Politici byli pravomocně zproštěni, žalobce se neodvolal. Úředníci dostali pravomocné podmínky. Pavel Bém (ODS), za jehož éry projekt vznikl, nebyl žalován.',
-    facts: [['Náklady projektu', 'přes 1,7 mld. Kč (město uvádí 1,75 mld.)'], ['Spor o licence', 'firma eMoneyServices žádala přes 600 mil. Kč; městský soud její žalobu zamítl'],
-      ['Tresty úředníků', 'podmínky od roku do tří let; Seyček zkušební doba 5 let a 2 mil. Kč magistrátu, Chytil 300 tis. Kč'], ['Obžaloba', 'nevýhodné smlouvy s dodavatelem Haguess a následně s majitelem práv']],
-    time: [['první rozsudek', 'podmínky pro Svobodu a Hudečka (nepravomocně)'], ['odvolací řízení', 'rozsudky zrušeny, nové projednání'], ['po výměně soudce', 'zproštění Hudečka, Svobody, Vorlíčkové, Noseka a Teski, žalobce se neodvolal']],
-    people: [['Tomáš Hudeček', 'TOP 09, ex-primátor', 'pravomocně zproštěn'], ['Bohuslav Svoboda', 'ODS, ex-primátor', 'zproštěn'], ['Pavel Bém', 'ODS, ex-primátor', 'nebyl stíhán, politickou odpovědnost částečně připouští']],
-    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/opencard-17519'], ['ČT24 – zproštění Hudečka', 'https://ct24.ceskatelevize.cz/clanek/domaci/hudecek-je-v-kauze-opencard-definitivne-nevinny-zalobce-se-proti-rozsudku-neodvolal-49101']] },
-
-  { id: 'stoka', title: 'Stoka (radnice Brno-střed)', scope: 'město', nodes: ['Dotace obcím'],
-    who: 'Jiří Švachula (dříve ANO), Petr Liškutin (dříve ANO), Jiří Hos (ODS) a podnikatelé',
-    status: 'Většina obžalovaných se dohodla na vině a trestu, dohody jsou pravomocné. V poslední části soud pravomocně zprostil dva podnikatele (únor 2026).',
-    facts: [['Zmanipulované zakázky', 'přes 260 mil. Kč'], ['Úplatky', 'obvykle 10 % zakázky; podle obžaloby 47 mil. Kč u Švachuly'], ['Švachula', 'dohodou 7 let a 8 měsíců a propadnutí majetku (nepravomocný rozsudek z roku 2022: 9,5 roku, žalobce navrhoval 14)'],
-      ['Smolka', '2 roky 10 měsíců podmíněně, pokuta 3 mil. Kč'], ['Liškutin', 'podmínka, pokuta 1,7 mil. Kč'], ['Rozsah', 'původně 11 lidí a 2 firmy']],
-    time: [['2019', 'zásah NCOZ, vazba, Švachula a Liškutin zbaveni funkcí'], ['květen 2022', 'první rozsudek, Švachula 9,5 roku'], ['listopad 2024', 'Vrchní soud rozsudek zrušil'],
-      ['prosinec 2025', 'dohody o vině a trestu, mj. Švachula'], ['12. 2. 2026', 'zproštění dvou podnikatelů, pravomocně']],
-    people: [['Jiří Švachula', 'dříve ANO, ex-místostarosta Brna-střed', '7 let 8 měsíců dohodou'], ['Petr Liškutin', 'dříve ANO', 'podmínka a pokuta'], ['Jiří Hos', 'ODS, podnikatel', 'podmínka dohodou']],
-    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/kauza-stoka-4477'], ['ČTK – dohoda Švachuly', 'https://www.ceskenoviny.cz/index_view.php?id=2755370']] },
-
-  { id: 'respiratory', title: 'Nákupy roušek a respirátorů 2020', scope: 'stát', nodes: ['Záchranné služby a ostatní', 'Státní správa'],
-    who: 'Adam Vojtěch (ANO, zdravotnictví), Jan Hamáček (ČSSD, vnitro)',
-    status: 'NKÚ označil nákupy za chaotické, nehospodárné a netransparentní. Policie šetření nákupů ministerstva zdravotnictví odložila. Oba ministři postup hájí.',
-    facts: [['Celkem zaplaceno (1. 1.–31. 8. 2020)', '8,5 mld. Kč (zdravotnictví + vnitro)'], ['Prověřený vzorek NKÚ', '28,3 mil. ks za 1,8 mld. Kč; 13,3 mil. ks napoprvé neprošlo testem'],
-      ['Ceny', 'vnitro FFP3 za 60–422 Kč, zdravotnictví FFP2 až 777 Kč; stejný typ od 46 do 776 Kč'], ['Supervize Hologramy', '72 mil. Kč, respirátor z Číny za 38 Kč prodán za 150 Kč (přirážka cca 300 %)'],
-      ['Firma Hausenblas (vnitro)', 'více než půl miliardy Kč v jednom dni'], ['Zdravotnictví celkem', '2,34 mld. Kč, přibližně třetina dodávek stornována']],
-    time: [['březen 2020', 'nouzový stav, nákupy dvou nespolupracujících ministerstev'], ['léto 2020', 'média odhalují předražené kontrakty'], ['březen 2021', 'zpráva NKÚ'], ['2021', 'policie odkládá šetření nákupů ministerstva zdravotnictví']],
-    people: [['Adam Vojtěch', 'ANO, ex-ministr zdravotnictví', 'tvrdí, že korupce nebyla a opozice útočila neprávem'], ['Jan Hamáček', 'ČSSD, ex-ministr vnitra', 'tvrdí, že vnitro nepochybilo a zachránilo životy']],
-    src: [['Seznam Zprávy – zpráva NKÚ', 'https://www.seznamzpravy.cz/clanek/zdrcujici-zaver-kontroloru-vlada-pri-pandemii-selhala-147877'], ['ČT24 – odložení případu', 'https://ct24.ceskatelevize.cz/clanek/domaci/policie-odlozila-pripad-nakupu-respiratoru-resortem-zdravotnictvi-pise-pravo-30942']] },
-
-  { id: 'okamura', title: 'Plakáty SPD (podněcování k nenávisti)', scope: 'bez vazby', nodes: [],
-    who: 'Tomio Okamura a hnutí SPD',
-    status: 'Městský soud v září 2026 pravomocně rozhodl, že SPD plakáty nespáchalo trestný čin. Státní zastupitelství podalo dovolání k Nejvyššímu soudu. Stíhání Okamury je přerušené, Sněmovna ho v březnu 2026 nevydala. Bez přímé vazby na položku rozpočtu.',
-    facts: [['Hrozící trest', '6 měsíců až 3 roky vězení'], ['1. instance (3. 6. 2026)', 'SPD pokuta 3 mil. Kč'], ['Odvolací soud (1. 9. 2026)', 'SPD osvobozeno, pravomocně'], ['Obžaloba', 'srpen 2025, dva plakáty z kampaně 2024']],
-    time: [['únor 2025', 'Sněmovna Okamuru vydává ke stíhání (předchozí období)'], ['srpen 2025', 'obžaloba na Okamuru a SPD'], ['březen 2026', 'nově zvolená Sněmovna Okamuru nevydala'], ['červen–září 2026', 'pokuta, poté osvobození SPD, dovolání']],
-    people: [['Tomio Okamura', 'SPD, předseda Sněmovny', 'stíhání přerušeno, označuje je za politické'], ['SPD', 'hnutí', 'pravomocně osvobozeno odvolacím soudem']],
-    src: [['ČT24 – osvobození SPD', 'https://ct24.ceskatelevize.cz/clanek/domaci/spd-nespachalo-trestny-cin-podnecovani-k-nenavisti-rozhodl-odvolaci-soud-377144'], ['iROZHLAS – dovolání', 'https://www.irozhlas.cz/zpravy-domov/bradacova-se-dovolala-v-kauze-plakatu-spd-rozhodovat-bude-nejvyssi-soud_2611091515_raf']] },
-
-  { id: 'balastikova', title: 'Nahrávky Margity Balaštíkové', scope: 'bez vazby', nodes: [],
-    who: 'Margita Balaštíková (ANO, tehdy poslankyně)',
-    status: 'Policie případ s nahrávkami o zabití psa odložila jako promlčený přestupek. Jiná část (tlak na krajskou hygienu kvůli firmě exmanžela) byla dál prošetřována. Bez přímé vazby na položku rozpočtu.',
-    facts: [['Nahrávky', 'pořízeny v létě 2023, zveřejněny v srpnu 2025; podle znaleckých posudků na nich mluví ona'], ['Zmíněná cena (nahrávka)', 'odhad kolem 50 tis. Kč'], ['Reakce', 'označila nahrávky za podvrhy; pozastavila členství v ANO a byla vyškrtnuta z kandidátky']],
-    time: [['léto 2023', 'nahrávky vznikají při rozvodu'], ['srpen 2025', 'nahrávky se dostávají na veřejnost'], ['říjen 2025', 'policie odkládá případ psa pro promlčení']],
-    people: [['Margita Balaštíková', 'ANO, ex-poslankyně', 'případ psa odložen pro promlčení, tlak na hygienu prošetřován']],
-    src: [['Blesk – přehled 2025', 'https://www.blesk.cz/clanek/829290']] }
+    status: 'Audit Evropské komise shledal střet zájmů. Česko nemuselo vracet peníze do Bruselu, ale část projektů už stát proplatil sám.',
+    facts: [['Vyplaceno', 'min. 155 mil. Kč ze státní pokladny'], ['Dotace na toustový chléb', '100 mil. Kč; platil český rozpočet']],
+    time: [['2021', 'finální zpráva auditu: Babiš stále ovládá Agrofert'], ['26. 5. 2026', 'odpověď českých úřadů Komisi nestačila, dotace neproplatí']],
+    people: [['Andrej Babiš', 'ANO, premiér', 'audit označuje za účelový'], ['Agrofert', 'holding', 'nesouhlasí']],
+    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-ujistili-eu-ze-dotace-pro-agrofert-jsou-zmrazeny-vzapeti-miliardy-uvolnili-305430']] },
+  { id: 'rath', title: 'Kauza Rath', scope: 'kraj', nodes: ['Dotace krajům', 'Dotace nemocnicím'],
+    who: 'David Rath (ČSSD) a další',
+    status: 'Rath pravomocně odsouzen (7 + 1 rok). Ústavní soud stížnosti odmítl.',
+    facts: [['Objem zakázek', 'přes 700 mil. Kč'], ['Hotovost', '7 mil. Kč v krabici od vína']],
+    time: [['2012', 'Zadržení'], ['2022', 'podmíněně propuštěn, později výzva k návratu do vězení pro 2. větev']],
+    people: [['David Rath', 'ČSSD', 'pravomocně odsouzen']],
+    src: [['ČT24', 'https://ct24.ceskatelevize.cz/david-rath/']] },
+  { id: 'necas', title: 'Trafiky a Nagygate', scope: 'stát', nodes: ['Dividendy a odvody státních podniků', 'Ústavní orgány a úřady'],
+    who: 'Petr Nečas (ODS), Jana Nečasová',
+    status: 'Pravomocně odsouzeni. Kauza skončila v roce 2026 odmítnutím ústavních stížností.',
+    facts: [['Trest Nečase', '2,5 roku podmíněně, pokuta 1 mil. Kč'], ['Podstata', 'Lukrativní funkce za vzdání se mandátu']],
+    time: [['2013', 'Razie na Úřadu vlády'], ['2026', 'Ústavní soud odmítl stížnosti']],
+    people: [['Petr Nečas', 'ODS', 'odsouzen'], ['Jana Nečasová', 'ředitelka kabinetu', 'odsouzena']],
+    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/domaci-zivot-v-cesku-kauza-trafik-pro-exposlance-skoncila-ustavni-soud-odmitl-stiznost-303905']] },
+  { id: 'dozimetr', title: 'Dozimetr', scope: 'město', nodes: ['Dotace obcím', 'Platby za státní pojištěnce'],
+    who: 'Petr Hlubuček (STAN), Michal Redl',
+    status: 'Probíhá hlavní líčení. Redl a Hlubuček vinu odmítají.',
+    facts: [['Návrh trestů (2026)', 'Redl 10 let, Hlubuček 8 let'], ['Dohody', 'Někteří podnikatelé přijali pokuty v milionech']],
+    time: [['2022', 'Razie'], ['2026', 'Výslechy svědků']],
+    people: [['Petr Hlubuček', 'STAN', 'obžalován'], ['Michal Redl', 'podnikatel', 'obžalován']],
+    src: [['ČT24', 'https://ct24.ceskatelevize.cz/tema/kauza-dozimetr-1723']] },
+  { id: 'bitcoin', title: 'Bitcoinový dar justici', scope: 'stát', nodes: ['Spravedlnost', 'Ostatní nedaňové'],
+    who: 'Pavel Blažek (ODS), Tomáš Jiřikovský',
+    status: 'Obžalováni 4 lidé. Vinu popírají.',
+    facts: [['Dar', 'téměř 1 mld. Kč (468 BTC)'], ['Návrh pro Blažka', '6,5 roku vězení']],
+    time: [['2025', 'Ministerstvo přijímá dar, demisa'], ['2026', 'Obžaloba']],
+    people: [['Pavel Blažek', 'ODS', 'obžalován'], ['Tomáš Jiřikovský', 'dárce', 'obžalován']],
+    src: [['ČT24', 'https://ct24.ceskatelevize.cz/tema/tomas-jirikovsky-99489']] },
+  { id: 'autostrada', title: 'Autostráda', scope: 'kraj', nodes: ['Silnice II. a III. třídy', 'Dotace krajům'],
+    who: 'Michal Zácha (ODS), Robert Knobloch',
+    status: 'Návrh na obžalobu 8 lidí. Úplatky přes 46 mil. Kč.',
+    facts: [['Kód', '2 slivovice = 200 tis. Kč']],
+    time: [['2023', 'Razie'], ['2026', 'Návrh obžaloby']],
+    people: [['Michal Zácha', 'ODS', 'hrozí 7 let']],
+    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-policie-politici-ods-pouzivali-pro-uplatky-kody-2-slivovice-200-tisic-239879']] },
+  { id: 'opencard', title: 'Opencard', scope: 'město', nodes: ['Dotace obcím'],
+    who: 'Bohuslav Svoboda, Tomáš Hudeček, úředníci',
+    status: 'Politici pravomocně zproštěni, úředníci dostali podmínky.',
+    facts: [['Náklady', 'přes 1,7 mld. Kč']],
+    time: [['2010s', 'Soudní procesy']],
+    people: [['Tomáš Hudeček', 'TOP 09', 'zproštěn'], ['Bohuslav Svoboda', 'ODS', 'zproštěn']],
+    src: [['ČT24', 'https://ct24.ceskatelevize.cz/tema/opencard-17519']] },
+  { id: 'stoka', title: 'Stoka (Brno-střed)', scope: 'město', nodes: ['Dotace obcím'],
+    who: 'Jiří Švachula (ANO) a další',
+    status: 'Švachula dohodl 7 let a 8 měsíců.',
+    facts: [['Zakázky', 'přes 260 mil. Kč'], ['Úplatky', 'obvykle 10 %']],
+    time: [['2019', 'Razie'], ['2025', 'Dohody o vině a trestu']],
+    people: [['Jiří Švachula', 'ANO', 'odsouzen dohodou']],
+    src: [['ČT24', 'https://ct24.ceskatelevize.cz/tema/kauza-stoka-4477']] },
+  { id: 'respiratory', title: 'Roušky a respirátory', scope: 'stát', nodes: ['Záchranné služby a ostatní', 'Státní správa'],
+    who: 'Adam Vojtěch (ANO), Jan Hamáček (ČSSD)',
+    status: 'NKÚ kritizoval netransparentnost. Policie šetření odložila.',
+    facts: [['Cena', '8,5 mld. Kč za 1. polovinu 2020']],
+    time: [['2020', 'Nákupy'], ['2021', 'Zpráva NKÚ, policie odkládá']],
+    people: [['Adam Vojtěch', 'ANO', 'hájí postup']],
+    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/zdrcujici-zaver-kontroloru-vlada-pri-pandemii-selhala-147877']] }
 ];
 
 // ---------- datový model ----------
@@ -325,7 +300,7 @@ class Node {
   grow() { this.kids.length ? this.kids.forEach(k => k.grow()) : this.sim *= 1 + this.g; }
   total() { return this.val = this.kids.length ? this.kids.reduce((s, k) => s + k.total(), 0) : this.sim; }
 }
-// spec: [název, hodnota | [potomci], roční růst, (barva skupiny)]
+
 function build(spec, parent, col, depth) {
   const [name, v, g, c] = spec; col = c || col;
   const n = new Node(name, col, parent, depth);
@@ -334,55 +309,36 @@ function build(spec, parent, col, depth) {
   if (name === 'Obsluha státního dluhu') debtNode = n;
   return n;
 }
+
 function initData() {
   P = build(['CELKOVÉ PŘÍJMY', [
     ['Daňové příjmy', [
       ['DPH', 386, .03],
-      ['Daně z příjmů', [
-        ['Právnické osoby (firmy)', 240, .025],
-        ['Fyzické osoby', [
-          ['Ze závislé činnosti', 140, .04], ['Z přiznání (OSVČ)', 10, .03], ['Srážková daň', 10, .02]]]]],
-      ['Spotřební daně', [
-        ['Minerální oleje', 85, .01], ['Tabákové výrobky', 60, -.01], ['Líh a lihoviny', 15, .01], ['Pivo a víno', 10, .01]]],
+      ['Daně z příjmů', [['Právnické osoby (firmy)', 240, .025], ['Fyzické osoby', [['Ze závislé činnosti', 140, .04], ['Z přiznání (OSVČ)', 10, .03], ['Srážková daň', 10, .02]]]]],
+      ['Spotřební daně', [['Minerální oleje', 85, .01], ['Tabákové výrobky', 60, -.01], ['Líh a lihoviny', 15, .01], ['Pivo a víno', 10, .01]]],
       ['Majetkové a ostatní', [['Daň z nemovitých věcí', 15, .02], ['Silniční daň', 1, 0], ['Odvody z hazardu', 12, .02], ['Správní poplatky', 6, .02]]],
       ['Ekologické daně', [['Zemní plyn', 3.5, .01], ['Elektřina', 2, .01], ['Pevná paliva', 0.5, 0]]],
       ['Clo (podíl ČR)', 5, .01]], 0, '#94e2d5'],
-    ['Sociální pojištění', [
-      ['Důchodové pojištění', [['Zaměstnavatelé', 420, .035], ['Zaměstnanci', 160, .035], ['OSVČ', 50, .03]]], ['Nemocenské pojištění', 45, .03], ['Politika zaměstnanosti', 25, .03]], 0, '#f9e2af'],
-    ['Nedaňové a kapitálové', [
-      ['Příjmy z rozpočtu EU', [['Strukturální a kohezní fondy', 70, .01], ['Společná zemědělská politika', 30, .01], ['Ostatní programy EU', 10, .01]]], ['Příjmy z prodeje majetku', 15, 0], ['Sankce, poplatky a ostatní', [['Dividendy a odvody státních podniků', 25, .02], ['Soudní poplatky a pokuty', 20, .02], ['Příjmy z úroků a služeb', 14, .02], ['Ostatní nedaňové', 45, .02]]]], 0, '#fab387']
+    ['Sociální pojištění', [['Důchodové pojištění', [['Zaměstnavatelé', 420, .035], ['Zaměstnanci', 160, .035], ['OSVČ', 50, .03]]], ['Nemocenské pojištění', 45, .03], ['Politika zaměstnanosti', 25, .03]], 0, '#f9e2af'],
+    ['Nedaňové a kapitálové', [['Příjmy z rozpočtu EU', [['Strukturální a kohezní fondy', 70, .01], ['Společná zemědělská politika', 30, .01], ['Ostatní programy EU', 10, .01]]], ['Příjmy z prodeje majetku', 15, 0], ['Sankce, poplatky a ostatní', [['Dividendy a odvody státních podniků', 25, .02], ['Soudní poplatky a pokuty', 20, .02], ['Příjmy z úroků a služeb', 14, .02], ['Ostatní nedaňové', 45, .02]]]], 0, '#fab387']
   ]], null, '#a6e3a1', 0);
 
   V = build(['CELKOVÉ VÝDAJE', [
-    ['Práce a sociální věci', [
-      ['Důchodový systém', [['Starobní důchody', 580, .045], ['Invalidní důchody', 65, .03], ['Vdovské a sirotčí', 55, .025]]],
-      ['Sociální podpora', [['Rodičovský příspěvek', 42, .01], ['Příspěvek na bydlení', 18, .05], ['Přídavky na děti', 6, .02], ['Ostatní dávky', 14, .02]]],
-      ['Péče a zdravotní postižení', [['Příspěvek na péči', 45, .045], ['Dávky osobám se zdravotním postižením', 16, .03], ['Sociální služby (dotace krajům)', 26, .03]]],
-      ['Zaměstnanost', [['Podpora v nezaměstnanosti', 14, .02], ['Aktivní politika zaměstnanosti', 9, .02]]]], 0, '#f38ba8'],
-    ['Školství', [
-      ['Regionální školství', [['Platy učitelů', 160, .035], ['Provozní výdaje škol', 30, .02], ['Asistenti pedagoga', 12, .04], ['Nepedagogičtí pracovníci', 25, .03], ['Učebnice a rozvojové programy', 8, .02]]],
-      ['Vysoké školy', 40, .03], ['Věda a výzkum', [['Grantová agentura ČR', 7, .04], ['Akademie věd ČR', 8, .04], ['Technologická agentura ČR', 7, .04], ['Operační programy a ostatní', 21, .04]]]], 0, '#fab387'],
+    ['Práce a sociální věci', [['Důchodový systém', [['Starobní důchody', 580, .045], ['Invalidní důchody', 65, .03], ['Vdovské a sirotčí', 55, .025]]], ['Sociální podpora', [['Rodičovský příspěvek', 42, .01], ['Příspěvek na bydlení', 18, .05], ['Přídavky na děti', 6, .02], ['Ostatní dávky', 14, .02]]], ['Péče a zdravotní postižení', [['Příspěvek na péči', 45, .045], ['Dávky osobám se zdravotním postižením', 16, .03], ['Sociální služby (dotace krajům)', 26, .03]]], ['Zaměstnanost', [['Podpora v nezaměstnanosti', 14, .02], ['Aktivní politika zaměstnanosti', 9, .02]]]], 0, '#f38ba8'],
+    ['Školství', [['Regionální školství', [['Platy učitelů', 160, .035], ['Provozní výdaje škol', 30, .02], ['Asistenti pedagoga', 12, .04], ['Nepedagogičtí pracovníci', 25, .03], ['Učebnice a rozvojové programy', 8, .02]]], ['Vysoké školy', 40, .03], ['Věda a výzkum', [['Grantová agentura ČR', 7, .04], ['Akademie věd ČR', 8, .04], ['Technologická agentura ČR', 7, .04], ['Operační programy a ostatní', 21, .04]]]], 0, '#fab387'],
     ['Zdravotnictví', [['Platby za státní pojištěnce', 145, .04], ['Dotace nemocnicím', 15, .02], ['Investice do zdravotnictví', 8, .03], ['Veřejné zdraví a prevence', 5, .03], ['Záchranné služby a ostatní', 7, .02]], 0, '#f9e2af'],
     ['Obrana', [['Akvizice techniky', 70, .06], ['Personální náklady', 50, .04], ['Provoz a výcvik', 40, .03], ['Výstavba a infrastruktura', 12, .04], ['Zahraniční mise a NATO', 8, .03], ['Vojenská správa a zdravotnictví', 6, .03], ['Kyberobrana a zpravodajství', 5, .05]], 0, '#a6e3a1'],
-    ['Doprava', [
-      ['Dopravní infrastruktura', [['Dálnice a silnice 1. tříd', 80, .03], ['Železnice', 55, .03], ['Silnice II. a III. třídy', 12, .03], ['Cyklostezky a ostatní', 4, .03]]],
-      ['Dotace regionům', 15, .02], ['Dálková veřejná doprava', 12, .03], ['Vodní doprava a ostatní', 3, .02]], 0, '#94e2d5'],
+    ['Doprava', [['Dopravní infrastruktura', [['Dálnice a silnice 1. tříd', 80, .03], ['Železnice', 55, .03], ['Silnice II. a III. třídy', 12, .03], ['Cyklostezky a ostatní', 4, .03]]], ['Dotace regionům', 15, .02], ['Dálková veřejná doprava', 12, .03], ['Vodní doprava a ostatní', 3, .02]], 0, '#94e2d5'],
     ['Vnitro a bezpečnost', [['Policie ČR', 50, .03], ['Hasičský sbor', 15, .03], ['Státní správa', 35, .02], ['Cizinecká policie a azyl', 6, .03], ['Volby a registry', 4, .02], ['Krizové řízení', 3, .03]], 0, '#89b4fa'],
     ['Transfery samosprávám', [['Dotace krajům', 30, .03], ['Dotace obcím', 25, .03]], 0, '#f5c2e7'],
     ['Odvod do rozpočtu EU', 60, .02, '#74c7ec'],
     ['Obsluha státního dluhu', 95, 0, '#cba6f7'],
-    ['Ostatní resorty', [['Zemědělství', 65, .015], ['Průmysl a obchod', 50, .02], ['Spravedlnost', [['Soudy', 17, .03], ['Vězeňství', 12, .03], ['Státní zastupitelství', 6, .03]]],
-      ['Zahraničí', [['Zastupitelské úřady', 8, .02], ['Rozvojová spolupráce', 4, .02], ['Mezinárodní organizace', 3, .02]]],
-      ['Kultura', [['Kulturní instituce', 9, .02], ['Památková péče', 5, .02]]],
-      ['Životní prostředí', [['Ochrana ovzduší a vod', 15, .02], ['Krajina a příroda', 10, .02]]],
-      ['Místní rozvoj', [['Podpora bydlení', 7, .02], ['Cestovní ruch', 3, .02], ['Regionální rozvoj', 2, .02]]],
-      ['Ústavní orgány a úřady', 8, .02], ['Rezervy', 42, .02]], 0, '#b4befe']
+    ['Ostatní resorty', [['Zemědělství', 65, .015], ['Průmysl a obchod', 50, .02], ['Spravedlnost', [['Soudy', 17, .03], ['Vězeňství', 12, .03], ['Státní zastupitelství', 6, .03]]], ['Zahraničí', [['Zastupitelské úřady', 8, .02], ['Rozvojová spolupráce', 4, .02], ['Mezinárodní organizace', 3, .02]]], ['Kultura', [['Kulturní instituce', 9, .02], ['Památková péče', 5, .02]]], ['Životní prostředí', [['Ochrana ovzduší a vod', 15, .02], ['Krajina a příroda', 10, .02]]], ['Místní rozvoj', [['Podpora bydlení', 7, .02], ['Cestovní ruch', 3, .02], ['Regionální rozvoj', 2, .02]]], ['Ústavní orgány a úřady', 8, .02], ['Rezervy', 42, .02]], 0, '#b4befe']
   ]], null, '#f38ba8', 0);
   P.exp = V.exp = true;
   attachKauzy();
 }
 
-// Napojení kauz na uzly; odznak se propaguje i na rodiče, takže je vidět i na sbalených blocích.
 function attachKauzy() {
   const by = {}, idx = n => { by[n.name] = n; n.kids.forEach(idx); };
   idx(P); idx(V);
@@ -394,15 +350,15 @@ function attachKauzy() {
   }));
 }
 
-// ---------- simulace (úrok se počítá z dluhu na začátku roku) ----------
+// ---------- simulace ----------
 function scaleTo(n, f) { n.kids.length ? n.kids.forEach(k => scaleTo(k, f)) : n.sim *= f; }
 function simulate() {
   P.reset(); V.reset(); debt = BASE_DEBT; gdp = BASE_GDP; let prev = 0;
-  if (year < 2024) {                          // historie: přeškálování stromu na skutečné součty
+  if (year < 2024) {
     const h = HIST[year]; P.total(); V.total();
     scaleTo(P, h.p / P.val); scaleTo(V, h.v / V.val);
-    for (let y = 2023; y >= year; y--) debt += HIST[y].p - HIST[y].v;   // dluh zpětně ze sald
-    gdp = NaN;                                // HDP za minulé roky v modelu není
+    for (let y = 2023; y >= year; y--) debt += HIST[y].p - HIST[y].v;
+    gdp = NaN;
     P.total(); V.total(); updateKpi(); return;
   }
   for (let y = 2024; y <= year; y++) {
@@ -420,7 +376,7 @@ function updateKpi() {
   $('kG').textContent = isFinite(gdp) ? fmt(debt / gdp * 100, 1) + ' %' : '—';
 }
 
-// ---------- rozložení (každý podstrom má vlastní výšku, takže se bloky nepřekrývají) ----------
+// ---------- rozložení ----------
 function layout(n, x, y, dir) {
   n.tx = dir < 0 ? x - W : x; n.ty = y; n.th = n.val * SC;
   let sub = n.th;
@@ -445,20 +401,40 @@ function fit() {
 function setAll(n, f, top) { if (n.kids.length) { n.exp = top ? true : f; n.kids.forEach(k => setAll(k, f)); } if (!n.exp) resetInit(n); }
 function resetInit(n) { n.kids.forEach(k => { k.init = false; resetInit(k); }); }
 
-// ---------- p5 ----------
+// ---------- p5 setup a události ----------
 function setup() {
   const st = $('stage');
   cnv = createCanvas(st.clientWidth, st.clientHeight); cnv.parent('stage');
   pixelDensity(Math.min(window.devicePixelRatio || 1, 2));
   textFont('system-ui, sans-serif');
   initData(); simulate(); fit(); setupInput();
+
+  // Globální vstupy
   $('yr').oninput = e => { year = +e.target.value; $('yl').textContent = year + (HIST[year] && HIST[year].approx ? ' (odhad)' : ''); simulate(); };
   $('rt').oninput = e => { rate = e.target.value / 1000; $('rl').textContent = fmt(rate * 100, 1) + ' %'; simulate(); };
-  $('bAll').onclick = () => { setAll(P, true, true); setAll(V, true, true); fit(); };
-  $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); };
-  $('bFit').onclick = fit;
+  
+  // Tlačítka ovlivňující zobrazení (přesunuta do Nastavení)
+  $('bAll').onclick = () => { setAll(P, true, true); setAll(V, true, true); fit(); $('settingsModal').style.display = 'none'; };
+  $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); $('settingsModal').style.display = 'none'; };
+  $('bFit').onclick = () => { fit(); $('settingsModal').style.display = 'none'; };
 
-  // --- Kauzy: podrobný seznam s filtrem a hledáním ---
+  // --- Modals obsluha ---
+  const closeAllModals = () => {
+    document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+  };
+
+  $('bSettings').onclick = () => $('settingsModal').style.display = 'flex';
+  $('closeSettings').onclick = closeAllModals;
+  $('settingsModal').onclick = e => { if (e.target === $('settingsModal')) closeAllModals(); };
+
+  // Kauzy Toggle v Nastavení
+  $('kToggle').checked = showK;
+  $('kToggle').onchange = e => {
+    showK = e.target.checked;
+    $('bKauzyModalBtn').style.display = showK ? 'inline-flex' : 'none';
+  };
+
+  // Kauzy rozhraní
   let kScope = '', kQ = '';
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const renderK = () => {
@@ -480,29 +456,22 @@ function setup() {
   document.querySelectorAll('.chip[data-s]').forEach(b => b.onclick = () => {
     kScope = b.dataset.s; document.querySelectorAll('.chip[data-s]').forEach(x => x.classList.toggle('on', x === b)); renderK();
   });
-  $('bK').onclick = () => { $('kauzyModal').style.display = 'flex'; };
-  $('closeK').onclick = () => { $('kauzyModal').style.display = 'none'; };
-  $('kauzyModal').onclick = e => { if (e.target === $('kauzyModal')) $('kauzyModal').style.display = 'none'; };
-  $('bKT').onclick = () => { showK = !showK; $('bKT').classList.toggle('off', !showK); };
+  
+  $('bKauzyModalBtn').onclick = () => $('kauzyModal').style.display = 'flex';
+  $('closeK').onclick = closeAllModals;
+  $('kauzyModal').onclick = e => { if (e.target === $('kauzyModal')) closeAllModals(); };
 
-  // --- NASTAVENÍ ÚČTU PRO DARY ---
-  const myAccount = "275030807"; // Sem dejte své číslo účtu
-  const myBank = "0300";         // Sem dejte kód vaší banky
-  // -------------------------------
-
+  // Podpořit
+  const myAccount = "275030807";
+  const myBank = "0300";
   const updateQR = () => {
-    const amt = $('donAmt').value || 0; // Pokud uživatel pole vymaže, pošle se 0 (lze zadat v bance)
-    // Volání Paylibo API pro generování QR platby
+    const amt = $('donAmt').value || 0;
     $('qrImg').src = `https://api.paylibo.com/paylibo/generator/czech/image?accountNumber=${myAccount}&bankCode=${myBank}&amount=${amt}&currency=CZK&message=Dobrovolny+dar`;
     $('accNum').textContent = `${myAccount}/${myBank}`;
   };
-
-  // Obsluha okna pro dary
   $('bDonate').onclick = () => { $('donateModal').style.display = 'flex'; updateQR(); };
-  $('closeModal').onclick = () => { $('donateModal').style.display = 'none'; };
-  $('donateModal').onclick = e => { if (e.target === $('donateModal')) $('donateModal').style.display = 'none'; };
-
-  // Okamžitá aktualizace QR kódu při přepsání částky (událost input)
+  $('closeModal').onclick = closeAllModals;
+  $('donateModal').onclick = e => { if (e.target === $('donateModal')) closeAllModals(); };
   $('donAmt').oninput = updateQR;
 }
 function windowResized() { const st = $('stage'); resizeCanvas(st.clientWidth, st.clientHeight); }
@@ -528,7 +497,7 @@ function draw() {
 function drawNode(n, dir) {
   if (!n.init) { const p = n.parent; n.x = p ? p.x : n.tx; n.y = p ? p.y : n.ty; n.h = 0; n.init = true; }
   n.x += (n.tx - n.x) * 0.2; n.y += (n.ty - n.y) * 0.2; n.h += (n.th - n.h) * 0.2;
-  const rh = n.h * zoom;                       // skutečná výška na obrazovce = metrika detailu (LOD)
+  const rh = n.h * zoom;
   if (rh < 0.3) return;
   const [r, g, b] = n.rgb, hv = hover === n;
   const hasK = showK && n.kauzy;
@@ -538,7 +507,7 @@ function drawNode(n, dir) {
     fill(r, g, b, hv ? 90 : 42); stroke(hv ? color(255) : color(r, g, b)); strokeWeight((hv ? 2 : 1) / zoom);
     rect(n.x, n.y, W, n.h, Math.min(5, n.h / 3));
   }
-  if (rh >= 17) {                              // text se kreslí v pixelech obrazovky, ne zvětšený
+  if (rh >= 17) {
     noStroke(); textAlign(LEFT, TOP); textSize(12.5 / zoom);
     const pad = 8 / zoom, av = W - pad * 2 - (n.kids.length ? 14 / zoom : 0) - (hasK ? 26 / zoom : 0);
     let l = n.name;
@@ -549,7 +518,7 @@ function drawNode(n, dir) {
       text(fmt(n.val, n.val < 10 ? 1 : 0) + ' mld. · ' + fmt(n.val / n.root.val * 100, 1) + ' %', n.x + pad, n.y + 22 / zoom);
     }
     if (n.kids.length) { fill(255, 255, 255, 170); textAlign(RIGHT, TOP); textSize(12 / zoom); text(n.exp ? '▾' : '▸', n.x + W - 6 / zoom, n.y + 6 / zoom); }
-    if (hasK) {                                // odznak kauzy: ⚠ + počet navázaných kauz
+    if (hasK) {
       fill(243, 139, 168); textAlign(RIGHT, TOP); textSize(12 / zoom);
       text('⚠' + n.kauzy.length, n.x + W - (n.kids.length ? 22 : 6) / zoom, n.y + 6 / zoom);
     }
@@ -557,7 +526,7 @@ function drawNode(n, dir) {
   if (n.exp && n.kids.length) {
     const sx = dir > 0 ? n.x + W : n.x; let off = 0;
     for (const c of n.kids) {
-      if (c.h * zoom >= 0.3) {                 // stuha (Sankey) od rodiče k potomkovi
+      if (c.h * zoom >= 0.3) {
         const ex = dir > 0 ? c.x : c.x + W, m = (sx + ex) / 2, y0 = n.y + off, y1 = y0 + c.h, c0 = c.y, c1 = c.y + c.h;
         noStroke(); fill(c.rgb[0], c.rgb[1], c.rgb[2], hover === c ? 130 : 62);
         beginShape(); vertex(sx, y0); bezierVertex(m, y0, m, c0, ex, c0); vertex(ex, c1); bezierVertex(m, c1, m, y1, sx, y1); endShape(CLOSE);
@@ -578,11 +547,17 @@ function showTip() {
   if (n.kids.length) rows.push(`<em>${n.kids.length} podpoložek – klikni pro ${n.exp ? 'sbalení' : 'rozbalení'}</em>`);
   if (showK && n.kauzy) n.kauzy.forEach(k => rows.push(`<em style="color:var(--bad)">⚠ ${k.title} – ${k.facts[0][0]}: ${k.facts[0][1]}</em>`));
   t.innerHTML = rows.join(''); t.style.display = 'block';
-  t.style.left = Math.max(4, Math.min(mx + 16, width - t.offsetWidth - 4)) + 'px';
-  t.style.top = Math.max(4, Math.min(my + 16, height - t.offsetHeight - 4)) + 'px';
+  
+  // Posun tooltipu mimo prst
+  let targetX = mx + 16;
+  let targetY = my + 16;
+  if (ptrs.size > 0) { targetY = my - t.offsetHeight - 20; }
+  
+  t.style.left = Math.max(4, Math.min(targetX, width - t.offsetWidth - 4)) + 'px';
+  t.style.top = Math.max(4, Math.min(targetY, height - t.offsetHeight - 4)) + 'px';
 }
 
-// ---------- ovládání (myš, dotyk i štípnutí přes pointer events) ----------
+// ---------- ovládání ----------
 function zoomAt(cx, cy, f) {
   const nz = Math.min(14, Math.max(0.08, zoom * f)); f = nz / zoom;
   panX = cx - (cx - panX) * f; panY = cy - (cy - panY) * f; zoom = nz;
