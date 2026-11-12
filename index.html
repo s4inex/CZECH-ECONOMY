@@ -47,12 +47,23 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 #closeModal:hover, #closeK:hover { color: var(--bad); }
 
 /* Panel kauz */
-#kauzyBox { max-width: 460px; max-height: 85vh; overflow-y: auto; text-align: left; }
-.kauza { border-top: 1px solid var(--line); padding: 10px 0; font-size: 13px; line-height: 1.45; }
-.kauza:first-of-type { border-top: 0; }
-.kauza h3 { margin: 0 0 2px; font-size: 14px; color: var(--bad); }
+#kauzyBox { max-width: 820px; width: 94vw; max-height: 88vh; overflow-y: auto; text-align: left; }
+.kbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.kbar input { flex: 1; min-width: 140px; background: var(--bg); color: var(--tx); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; }
+.chip { padding: 3px 9px; font-size: 12px; border-radius: 999px; }
+.chip.on { background: var(--acc); color: var(--bg); border-color: var(--acc); }
+.kauza { border-top: 1px solid var(--line); padding: 12px 0; font-size: 13px; line-height: 1.45; }
+.kauza h3 { margin: 0 0 2px; font-size: 15px; color: var(--bad); }
+.kauza .tag { font-size: 10px; font-weight: 400; color: var(--mut); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
 .kauza .meta { color: var(--mut); font-size: 12px; }
-.kauza p { font-size: 13px !important; margin: 4px 0 !important; }
+.kauza p { font-size: 13px !important; margin: 6px 0 !important; }
+.kauza table { border-collapse: collapse; width: 100%; margin: 6px 0; }
+.kauza td { border-top: 1px solid var(--line); padding: 4px 6px; vertical-align: top; font-size: 12.5px; }
+.kauza td:first-child { color: var(--mut); width: 36%; }
+.kauza td:last-child { color: var(--tx); }
+.kauza details { margin: 4px 0; }
+.kauza summary { cursor: pointer; color: var(--acc); font-size: 12.5px; }
+.kauza ul { margin: 4px 0 4px 18px; padding: 0; font-size: 12.5px; }
 .kauza a { color: var(--acc); }
 
 *{box-sizing:border-box}
@@ -101,7 +112,7 @@ canvas{display:block}
 </div>
 <div id="stage">
   <div id="tip"></div>
-  <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · kolečko / štípnutí = zoom · ⚠ = navázaná kauza (najetím myši detail, tlačítko „Kauzy“ = zdroje). 2020–2023: součty skutečnosti dle MF ČR (2022 dopočteno), vnitřní členění je přeškálované z roku 2024. Čísla v mld. Kč jsou orientační odhady, ne oficiální data; růst je zjednodušený model.</div>
+  <div id="hint">Klik na blok = rozbalit/sbalit · tažení = posun · kolečko / štípnutí = zoom · ⚠ = navázaná kauza (tooltip = klíčové číslo, tlačítko „Kauzy“ = čísla, průběh, osoby, zdroje). 2020–2023: součty skutečnosti dle MF ČR (2022 dopočteno), vnitřní členění je přeškálované z roku 2024. Čísla v mld. Kč jsou orientační odhady, ne oficiální data; růst je zjednodušený model.</div>
 </div>
 
 <div id="donateModal" style="display:none;">
@@ -127,9 +138,10 @@ canvas{display:block}
 <div id="kauzyModal" style="display:none;">
   <div class="modal-content" id="kauzyBox">
     <span id="closeK">&times;</span>
-    <h2>Kauzy navázané na rozpočet</h2>
+    <h2>Kauzy a rozpočet <span id="kCount" class="meta"></span></h2>
+    <div class="kbar"><input id="kSearch" placeholder="Hledat jméno, stranu, kauzu…"><button class="chip on" data-s="">Vše</button><button class="chip" data-s="stát">Stát</button><button class="chip" data-s="kraj">Kraj</button><button class="chip" data-s="město">Město</button><button class="chip" data-s="bez vazby">Bez vazby na rozpočet</button></div>
     <div id="kList"></div>
-    <p class="disclaimer">Stav k 12. 11. 2026 podle zpravodajských zdrojů, před dalším šířením ověřte u aktuálních rozhodnutí soudů. Dokud rozhodnutí není pravomocné, platí presumpce neviny. Výběr není úplný: zahrnuje jen případy s vazbou na peněžní toky státu, krajů či měst, napříč stranami.</p>
+    <p class="disclaimer">Stav k 12. 11. 2026 podle zpravodajských zdrojů; před dalším šířením ověřte u aktuálních rozhodnutí soudů. Dokud rozhodnutí není pravomocné, platí presumpce neviny. Výběr není úplný (jde o případy, které se podařilo dohledat a doložit), seznam je napříč stranami. Napojení na položky grafu je orientační; u městských a krajských kauz nejde o přímé výdaje státního rozpočtu.</p>
   </div>
 </div>
 
@@ -160,30 +172,144 @@ const HIST = {
 // Stav k 12. 11. 2026. U každé kauzy je uveden stav řízení; neuvedené = nerozhodnuto.
 // nodes = názvy položek stromu, ke kterým se kauza váže (odznak ⚠ se propaguje i na rodiče).
 const KAUZY = [
-  { title: 'Čapí hnízdo (dotace z fondů EU)',
-    who: 'Andrej Babiš (ANO), Jana Nagyová (ANO)', amount: 'dotace 50 mil. Kč', nodes: ['Strukturální a kohezní fondy'],
-    status: 'Nagyová: Městský soud ji v květnu 2026 uznal vinnou (podmínka a peněžitý trest), Vrchní soud trest potvrdil. Babiš: Sněmovna ho v březnu 2026 nevydala k trestnímu stíhání, jeho část řízení je přerušena. Oba vinu odmítají, Babiš označuje proces za politický.',
-    url: 'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704' },
-  { title: 'Střet zájmů a dotace holdingu Agrofert',
-    who: 'Andrej Babiš (ANO)', amount: 'min. 155 mil. Kč z projektů kritizovaných auditem EK', nodes: ['Společná zemědělská politika', 'Strukturální a kohezní fondy'],
-    status: 'Audit Evropské komise shledal střet zájmů. Česko nemuselo nic vracet do Bruselu, ale část projektů již stát proplatil z vlastních peněz. Babiš audit označuje za účelový, Agrofert nesouhlasí. V roce 2026 Komise dál žádá záruky, že dotace pro holding zůstanou zmrazené.',
-    url: 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-ujistili-eu-ze-dotace-pro-agrofert-jsou-zmrazeny-vzapeti-miliardy-uvolnili-305430' },
-  { title: 'Kauza Rath (zakázky kraje a nemocnic)',
-    who: 'David Rath (ČSSD, tehdy středočeský hejtman) a další', amount: 'zakázky přes 700 mil. Kč', nodes: ['Dotace krajům', 'Dotace nemocnicím'],
-    status: 'Pravomocně odsouzen v první větvi (7 let), ve druhé větvi trest prodloužen na 8 let a peněžitý trest 18 mil. Kč; Ústavní soud jeho stížnosti odmítl. Stavební firmě Metrostav soud zakázal na 3 roky účast v zakázkách. Rath proces označuje za zpolitizovaný.',
-    url: 'https://ct24.ceskatelevize.cz/david-rath/' },
-  { title: 'Trafiky pro poslance ODS a Nagygate (2013)',
-    who: 'Petr Nečas (ODS), Jana Nečasová (dříve Nagyová), Roman Boček', amount: 'lukrativní posty ve státních firmách výměnou za hlasy', nodes: ['Dividendy a odvody státních podniků'],
-    status: 'Trafiky: Nečas pravomocně odsouzen (podmínka 2,5 roku, pokuta 1 mil. Kč), Nejvyšší soud dovolání odmítl, Ústavní soud odmítl stížnost Bočka. Kauza přispěla k pádu vlády v roce 2013. Větev se zneužitím Vojenského zpravodajství: Nečasová dostala podmínku, zbytek trestu jí prezident Zeman prominul.',
-    url: 'https://www.seznamzpravy.cz/clanek/domaci-zivot-v-cesku-kauza-trafik-pro-exposlance-skoncila-ustavni-soud-odmitl-stiznost-303905' },
-  { title: 'Dozimetr (zakázky pražského dopravního podniku)',
-    who: 'Petr Hlubuček (dříve STAN), Michal Redl (podnikatel) a další', amount: 'korupce kolem zakázek DPP (peníze města Prahy)', nodes: ['Dotace obcím'],
-    status: 'Probíhá hlavní líčení, obžalováno je několik lidí. Redl a Hlubuček vinu odmítají (žalobce navrhl 10 a 8 let), část podnikatelů se přiznala a dostala pokuty dohodou. V roce 2022 kvůli kontaktům s Redlem skončil ministr školství Petr Gazdík (STAN). Pozn.: jde o městské, ne státní peníze.',
-    url: 'https://ct24.ceskatelevize.cz/tema/michal-redl-1705' },
-  { title: 'Bitcoinový dar ministerstvu spravedlnosti',
-    who: 'Pavel Blažek (ODS), Radomír Daňhel, Kárim Titz, Tomáš Jiřikovský', amount: '468 BTC, téměř 1 mld. Kč; 235 BTC vydraženo za 446,6 mil. Kč', nodes: ['Spravedlnost', 'Ostatní nedaňové'],
-    status: 'Obžalováni jsou čtyři lidé včetně exministra Blažka a dárce Jiřikovského, všichni vinu popírají; řízení před soudem zatím neskončilo. Blažek po vypuknutí kauzy v roce 2025 rezignoval na funkci ministra.',
-    url: 'https://ct24.ceskatelevize.cz/tema/tomas-jirikovsky-99489' }
+  { id: 'capi', title: 'Čapí hnízdo', scope: 'stát', nodes: ['Strukturální a kohezní fondy'],
+    who: 'Andrej Babiš (ANO), Jana Nagyová (ANO)',
+    status: 'Nagyová: Městský soud ji 4. 5. 2026 uznal vinnou, Vrchní soud trest potvrdil. Babiš: Sněmovna ho v březnu 2026 nevydala ke stíhání, jeho část řízení je přerušena. Oba vinu odmítají.',
+    facts: [['Dotace', '50 mil. Kč (program pro malé a střední podniky z fondů EU)'],
+      ['Podezření žaloby', 'Farma Čapí hnízdo se na přelomu 2007/2008 formálně vyvedla z Agrofertu a akcie šly Babišově rodině, aby splnila podmínky dotace'],
+      ['Vráceno', '50 mil. Kč vráceno do rozpočtu v červnu 2018'],
+      ['Návrh žalobce pro Nagyovou', '3 roky podmíněně, zkušební doba 5 let, pokuta 500 tis. Kč']],
+    time: [['2015', 'policie se případem začíná zabývat'], ['2017', 'Babiš a Nagyová stíháni'],
+      ['únor 2024', 'Městský soud oba osvobodil'], ['23. 6. 2025', 'Vrchní soud osvobození zrušil a případ vrátil'],
+      ['říjen 2025', 'Babiš po volbách znovu získává imunitu, soud žádá Sněmovnu o vydání'],
+      ['březen 2026', 'Sněmovna Babiše nevydala'], ['4. 5. 2026', 'Nagyová uznána vinnou (podmínka a peněžitý trest), potvrzeno Vrchním soudem']],
+    people: [['Andrej Babiš', 'ANO, premiér', 'stíhání přerušeno; vinu odmítá, proces označuje za politický'],
+      ['Jana Nagyová', 'ANO, europoslankyně', 'uznána vinnou, podmínka a peněžitý trest']],
+    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704'], ['Blesk – přehled 2025', 'https://www.blesk.cz/clanek/829290']] },
+
+  { id: 'agrofert', title: 'Střet zájmů a dotace holdingu Agrofert', scope: 'stát', nodes: ['Společná zemědělská politika', 'Strukturální a kohezní fondy'],
+    who: 'Andrej Babiš (ANO)',
+    status: 'Audit Evropské komise shledal střet zájmů. Česko nemuselo vracet peníze do Bruselu, ale část projektů už stát proplatil sám. V roce 2026 Komise dál žádá záruky, že dotace pro holding zůstanou zmrazené.',
+    facts: [['Vyplaceno z projektů kritizovaných auditem', 'min. 155 mil. Kč ze státní pokladny'],
+      ['Návrh auditu (Deník N)', '451 mil. Kč k vrácení; ve finální zprávě Komise Česku vracení do Bruselu neuložila'],
+      ['Dotace na výrobu toustového chleba', '100 mil. Kč; Komise ji neproplatila, platil český rozpočet'],
+      ['Fatra', '547 tis. Kč vyplaceno státem navzdory auditu; žádost o proplacení Komise zamítla'],
+      ['Schválená částka pro holding (Seznam Zprávy)', 'cca 250 mil. Kč; ministr: symbolická částka']],
+    time: [['2017', 'novela zákona o střetu zájmů, Babiš vkládá firmy do svěřenských fondů'],
+      ['2021', 'finální zpráva auditu: Babiš stále ovládá Agrofert, je ve střetu zájmů'],
+      ['11. 3. 2026', 'Komise žádá ujištění, že dotace pro Agrofert jsou zmrazené'],
+      ['26. 5. 2026', 'odpověď českých úřadů Komisi nestačila, dotace neproplatí']],
+    people: [['Andrej Babiš', 'ANO, premiér', 'audit označuje za účelový a zmanipulovaný'], ['Agrofert', 'holding', 'se závěry auditu nesouhlasí']],
+    src: [['Seznam Zprávy', 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-ujistili-eu-ze-dotace-pro-agrofert-jsou-zmrazeny-vzapeti-miliardy-uvolnili-305430'],
+      ['ČT24 (toustová dotace)', 'https://ct24.ceskatelevize.cz/domaci/3312915-168-hodin-ministerstva-brani-agrofert-pred-vracenim-toustove-dotace-vznika-uz-sedmy']] },
+
+  { id: 'rath', title: 'Kauza Rath (zakázky kraje a nemocnic)', scope: 'kraj', nodes: ['Dotace krajům', 'Dotace nemocnicím'],
+    who: 'David Rath (ČSSD, tehdy středočeský hejtman) a další',
+    status: 'Rath je pravomocně odsouzen v obou větvích kauzy, Ústavní soud jeho stížnosti odmítl. Rath proces označuje za zpolitizovaný.',
+    facts: [['Objem zakázek', 'přes 700 mil. Kč (kraj a krajské nemocnice)'], ['Hotovost při zadržení', '7 mil. Kč (v krabici od vína)'],
+      ['1. větev', '7 let vězení, peněžitý trest 10 mil. Kč, 7 let zákaz funkcí (zakázka zámek Buštěhrad)'],
+      ['2. větev', 'trest prodloužen o rok na 8 let, peněžitý trest 18 mil. Kč'],
+      ['Další tresty', 'Metrostav: 10 mil. Kč a 3 roky zákazu zakázek; jeho náměstek Jiří Anděl 5 let; Kottovi: o rok nižší tresty (soud 1. instance 8,5 roku)']],
+    time: [['14. 5. 2012', 'Rath zadržen u domu ředitelky kladenské nemocnice'], ['2. pol. 2010s', 'pravomocný 7letý trest (1. větev)'],
+      ['leden 2020', 'Krajský soud ve 2. větvi dává 8 let'], ['červen 2022', 'odvolání ve 2. větvi u Vrchního soudu'],
+      ['2022', 'podmíněně propuštěn z vězení'], ['později', 'výzva k nástupu do vězení po pravomocném odsouzení ve 2. větvi, Ústavní soud stížnosti odmítl']],
+    people: [['David Rath', 'ČSSD, ex-hejtman', 'pravomocně odsouzen (7 + 1 rok), peněžité tresty 10 a 18 mil. Kč'],
+      ['Petr a Kateřina Kottovi', 'bývalý poslanec ODS, ředitelka nemocnice', 'odsouzeni, vysoké tresty a pokuty'], ['Jiří Anděl', 'Metrostav', '5 let nepodmíněně a 250 tis. Kč']],
+    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/david-rath/'], ['ČT24 – druhá větev', 'https://ct24.ceskatelevize.cz/clanek/domaci/soud-v-druhe-vetvi-rathovy-korupcni-kauzy-prodlouzil-exhejtmanovi-vezeni-o-rok-kottovym-o-dva-54090']] },
+
+  { id: 'necas', title: 'Trafiky pro poslance ODS a Nagygate (2013)', scope: 'stát', nodes: ['Dividendy a odvody státních podniků', 'Ústavní orgány a úřady'],
+    who: 'Petr Nečas (ODS), Jana Nečasová (dříve Nagyová), Roman Boček',
+    status: 'Trafiky: pravomocně odsouzen Nečas i Boček, kauza po 13 letech skončila odmítnutím ústavní stížnosti. Nagygate: Nečasová dostala podmínku, zbytek trestu jí prominul prezident Zeman.',
+    facts: [['Trest Nečase (trafiky)', '2,5 roku podmíněně, zkušební doba 4 roky, pokuta 1 mil. Kč (zahrnuje předchozí odsouzení)'],
+      ['Podstata', 'poslancům ODS (Šnajdr, Fuksa, Tejc) se slibovaly lukrativní funkce za vzdání se mandátu a hlasy pro daňový balíček'],
+      ['Získané posty', 'Šnajdr předseda dozorčí rady Čepra, Fuksa člen představenstva Českého Aeroholdingu'],
+      ['Dary Nagyové (obvinění, krácení daní)', '7 náhrdelníků za více než 3 mil. Kč, 4 hodinky za téměř 1,2 mil. Kč, 3 kožichy za přes 1 mil. Kč'],
+      ['Zneužití Vojenského zpravodajství', 'podmínky pro Nečasovou a bývalé zpravodajce; Nečas dostal trest za křivou výpověď ve prospěch manželky']],
+    time: [['13.–15. 6. 2013', 'razie na Úřadu vlády, vazba pro Nagyovou a zpravodajce'], ['17. 6. 2013', 'Nečas podává demisi a končí v čele ODS'],
+      ['2019', 'Nečas odsouzen trestním příkazem za křivou výpověď'], ['2020', 'soud ho v trafikách zprostil'], ['2021', 'Nejvyšší soud osvobození zrušil'],
+      ['později', 'odvolací soud potvrdil podmínku a pokutu, Nejvyšší soud dovolání odmítl'], ['2026', 'Ústavní soud odmítl stížnost Bočka, kauza skončila']],
+    people: [['Petr Nečas', 'ODS, ex-premiér', 'pravomocně odsouzen, podmínka a pokuta 1 mil. Kč'], ['Jana Nečasová (Nagyová)', 'bývalá ředitelka kabinetu premiéra', 'odsouzena v trafikách; ve větvi Vojenského zpravodajství podmínka, zbytek prominut'],
+      ['Roman Boček', 'bývalý náměstek ministra zemědělství', 'podmínka a peněžitý trest, stížnost odmítl Ústavní soud']],
+    src: [['Seznam Zprávy – konec trafik', 'https://www.seznamzpravy.cz/clanek/domaci-zivot-v-cesku-kauza-trafik-pro-exposlance-skoncila-ustavni-soud-odmitl-stiznost-303905'],
+      ['CNN Prima – přehled případu', 'https://cnn.iprima.cz/prehledne-o-pripadu-nagyova-o-co-jde-v-nejvybusnejsi-kauze-po-listopadu-1989-353854']] },
+
+  { id: 'dozimetr', title: 'Dozimetr (pražský dopravní podnik, VZP)', scope: 'město', nodes: ['Dotace obcím', 'Platby za státní pojištěnce'],
+    who: 'Petr Hlubuček (dříve STAN), Michal Redl, Marek Šnajdr (exposlanec ODS) a další',
+    status: 'Probíhá hlavní líčení; Redl a Hlubuček vinu odmítají. Část podnikatelů se přiznala a dostala pokuty dohodou. Sněmovna v březnu 2026 zřídila vyšetřovací komisi. Jde hlavně o městské peníze Prahy a o VZP, ne o přímé výdaje státního rozpočtu.',
+    facts: [['Navržené tresty (červen 2026)', 'Redl 10 let, Hlubuček 8 let'], ['Dohody o vině a trestu', 'Nemrah pokuta 3 mil. Kč, Dovhomilja 2 mil. Kč, Špringl 4,5 mil. Kč (firma Analogia 3,5 mil. Kč) za úplatek 100 tis. Kč'],
+      ['Další větev', 'obviněno 13 lidí a 4 firmy (NCOZ)'], ['Šnajdr', 'v dubnu 2026 se žalobce rozhodl poslat exposlance ODS k soudu; spoluobvinění Knížek a Dovhomilja se přiznali'],
+      ['Vyšetřovací komise', '13 členů, zřízena 25. 3. 2026, má za rok prověřit vazby v DPP a VZP'], ['Tvrzení spolupracujícího obviněného', 'část peněz měla jít na TOP 09 a STAN; Redl to popírá']],
+    time: [['červen 2022', 'razie NCOZ, rezignuje náměstek primátora Hlubuček, odchází ministr školství Gazdík (STAN) a šéf civilní rozvědky Mlejnek'], ['duben 2025', 'první tresty dohodou'],
+      ['2025', 'začíná hlavní líčení, Augustín spolupracuje'], ['25. 3. 2026', 'Sněmovna zřizuje vyšetřovací komisi'], ['červen 2026', 'výslechy svědků (např. Scheinherr), žalobce navrhl tresty']],
+    people: [['Petr Hlubuček', 'dříve STAN, ex-náměstek primátora', 'obžalován, vinu odmítá (navrhováno 8 let)'], ['Michal Redl', 'podnikatel', 'obžalován jako hlava skupiny, vinu odmítá (navrhováno 10 let)'],
+      ['Marek Šnajdr', 'ODS, exposlanec', 'obžalován (duben 2026)'], ['Matej Augustín', 'bývalý ekonomický náměstek DPP', 'spolupracuje s vyšetřovateli']],
+    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/michal-redl-1705'], ['ČT24 – kauza Dozimetr', 'https://ct24.ceskatelevize.cz/tema/kauza-dozimetr-1723']] },
+
+  { id: 'bitcoin', title: 'Bitcoinový dar ministerstvu spravedlnosti', scope: 'stát', nodes: ['Spravedlnost', 'Ostatní nedaňové'],
+    who: 'Pavel Blažek (ODS), Radomír Daňhel, Kárim Titz, Tomáš Jiřikovský',
+    status: 'Obžalováni jsou čtyři lidé včetně Blažka, všichni vinu popírají. Řízení před soudem zatím neskončilo.',
+    facts: [['Dar', '468 bitcoinů, téměř 1 mld. Kč'], ['Vydraženo', '235 BTC za 446,6 mil. Kč; dalších 233 BTC uloženo u úřadu pro zastupování státu'],
+      ['Nabídka advokáta Titze (dle médií)', 'justice získá 30 % z bitcoinů v peněžence klienta, pokud ji otevře'], ['Náklady na experty v kauze', 'zhruba 7,3 mil. Kč'], ['Návrh žalobkyně pro Blažka', '6,5 roku vězení'],
+      ['Dárce', 'Jiřikovský odsouzen 2017 na 9 let (zpronevěra, drogy, zbraně), 2021 podmíněně propuštěn']],
+    time: [['březen 2025', 'ministerstvo přijímá dar'], ['květen 2025', 'dar se zveřejní, 30. 5. Blažek podává demisi'], ['14.–17. 8. 2025', 'Jiřikovský zadržen, obviněn a poslán do vazby'],
+      ['květen 2026', 'policie obviňuje Blažka, Daňhela a Titze'], ['léto 2026', 'NCOZ končí vyšetřování, obžaloba na čtyři lidi']],
+    people: [['Pavel Blažek', 'ODS, ex-ministr spravedlnosti', 'obžalován, vinu popírá'], ['Radomír Daňhel', 'ex-náměstek ministra', 'obžalován, vinu popírá'],
+      ['Kárim Titz', 'advokát dárce', 'obžalován'], ['Tomáš Jiřikovský', 'dárce', 'obžalován (legalizace výnosů), ve vazbě']],
+    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/tomas-jirikovsky-99489'], ['Blesk – přehled 2025', 'https://www.blesk.cz/clanek/829290']] },
+
+  { id: 'autostrada', title: 'Autostráda (silniční zakázky Olomouckého kraje)', scope: 'kraj', nodes: ['Silnice II. a III. třídy', 'Dotace krajům'],
+    who: 'Michal Zácha (tehdy ODS), Robert Knobloch (lobbista, ex-ODS), manažeři stavebních firem a krajské správy silnic',
+    status: 'NCOZ navrhla obžalovat osm lidí a jednu firmu; žalobce má pro Záchu žádat 7 let. První obvinění uznali vinu a část dohodla trest. Rozšířená část o zakázce v Kostelci na Hané není uzavřena.',
+    facts: [['Úplatky podle obvinění', 'přes 46 mil. Kč u deseti zakázek'], ['Zakázka Unčovice–Litovel', 'přes 87 mil. Kč, úplatek pro Záchu 400 tis. Kč'], ['Zakázka Kostelec na Hané–Lešany–Zdětín', 'úplatek nejméně 20 mil. Kč'],
+      ['Počet obviněných', '13 lidí (listopad 2023)'], ['Horní sazba', 'až 12 let za přijetí úplatku nebo zneužití pravomoci'], ['Kód pro úplatky (dle policie)', '2 slivovice = 200 tis. Kč']],
+    time: [['listopad 2023', 'razie NCOZ, 13 obviněných, Knobloch ve vazbě (kauce 1 mil. Kč)'], ['listopad 2024', 'rozšíření o zakázku v Kostelci na Hané'], ['2026', 'návrh obžaloby, dohody o trestu u části obviněných']],
+    people: [['Michal Zácha', 'ODS, ex-náměstek hejtmana', 'rezignoval a vystoupil z ODS; žalobce má žádat 7 let'], ['Robert Knobloch', 'lobbista, ex-ODS', 'obviněn, ve vazbě (kauce 1 mil. Kč)']],
+    src: [['Seznam Zprávy – kódy', 'https://www.seznamzpravy.cz/clanek/domaci-kauzy-policie-politici-ods-pouzivali-pro-uplatky-kody-2-slivovice-200-tisic-239879'], ['ČT24 – téma Zácha', 'https://ct24.ceskatelevize.cz/tema/michal-zacha-10262']] },
+
+  { id: 'opencard', title: 'Opencard (pražská městská karta)', scope: 'město', nodes: ['Dotace obcím'],
+    who: 'Bohuslav Svoboda (ODS), Tomáš Hudeček (TOP 09), pražští radní a úředníci',
+    status: 'Politici byli pravomocně zproštěni, žalobce se neodvolal. Úředníci dostali pravomocné podmínky. Pavel Bém (ODS), za jehož éry projekt vznikl, nebyl žalován.',
+    facts: [['Náklady projektu', 'přes 1,7 mld. Kč (město uvádí 1,75 mld.)'], ['Spor o licence', 'firma eMoneyServices žádala přes 600 mil. Kč; městský soud její žalobu zamítl'],
+      ['Tresty úředníků', 'podmínky od roku do tří let; Seyček zkušební doba 5 let a 2 mil. Kč magistrátu, Chytil 300 tis. Kč'], ['Obžaloba', 'nevýhodné smlouvy s dodavatelem Haguess a následně s majitelem práv']],
+    time: [['první rozsudek', 'podmínky pro Svobodu a Hudečka (nepravomocně)'], ['odvolací řízení', 'rozsudky zrušeny, nové projednání'], ['po výměně soudce', 'zproštění Hudečka, Svobody, Vorlíčkové, Noseka a Teski, žalobce se neodvolal']],
+    people: [['Tomáš Hudeček', 'TOP 09, ex-primátor', 'pravomocně zproštěn'], ['Bohuslav Svoboda', 'ODS, ex-primátor', 'zproštěn'], ['Pavel Bém', 'ODS, ex-primátor', 'nebyl stíhán, politickou odpovědnost částečně připouští']],
+    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/opencard-17519'], ['ČT24 – zproštění Hudečka', 'https://ct24.ceskatelevize.cz/clanek/domaci/hudecek-je-v-kauze-opencard-definitivne-nevinny-zalobce-se-proti-rozsudku-neodvolal-49101']] },
+
+  { id: 'stoka', title: 'Stoka (radnice Brno-střed)', scope: 'město', nodes: ['Dotace obcím'],
+    who: 'Jiří Švachula (dříve ANO), Petr Liškutin (dříve ANO), Jiří Hos (ODS) a podnikatelé',
+    status: 'Většina obžalovaných se dohodla na vině a trestu, dohody jsou pravomocné. V poslední části soud pravomocně zprostil dva podnikatele (únor 2026).',
+    facts: [['Zmanipulované zakázky', 'přes 260 mil. Kč'], ['Úplatky', 'obvykle 10 % zakázky; podle obžaloby 47 mil. Kč u Švachuly'], ['Švachula', 'dohodou 7 let a 8 měsíců a propadnutí majetku (nepravomocný rozsudek z roku 2022: 9,5 roku, žalobce navrhoval 14)'],
+      ['Smolka', '2 roky 10 měsíců podmíněně, pokuta 3 mil. Kč'], ['Liškutin', 'podmínka, pokuta 1,7 mil. Kč'], ['Rozsah', 'původně 11 lidí a 2 firmy']],
+    time: [['2019', 'zásah NCOZ, vazba, Švachula a Liškutin zbaveni funkcí'], ['květen 2022', 'první rozsudek, Švachula 9,5 roku'], ['listopad 2024', 'Vrchní soud rozsudek zrušil'],
+      ['prosinec 2025', 'dohody o vině a trestu, mj. Švachula'], ['12. 2. 2026', 'zproštění dvou podnikatelů, pravomocně']],
+    people: [['Jiří Švachula', 'dříve ANO, ex-místostarosta Brna-střed', '7 let 8 měsíců dohodou'], ['Petr Liškutin', 'dříve ANO', 'podmínka a pokuta'], ['Jiří Hos', 'ODS, podnikatel', 'podmínka dohodou']],
+    src: [['ČT24 – téma', 'https://ct24.ceskatelevize.cz/tema/kauza-stoka-4477'], ['ČTK – dohoda Švachuly', 'https://www.ceskenoviny.cz/index_view.php?id=2755370']] },
+
+  { id: 'respiratory', title: 'Nákupy roušek a respirátorů 2020', scope: 'stát', nodes: ['Záchranné služby a ostatní', 'Státní správa'],
+    who: 'Adam Vojtěch (ANO, zdravotnictví), Jan Hamáček (ČSSD, vnitro)',
+    status: 'NKÚ označil nákupy za chaotické, nehospodárné a netransparentní. Policie šetření nákupů ministerstva zdravotnictví odložila. Oba ministři postup hájí.',
+    facts: [['Celkem zaplaceno (1. 1.–31. 8. 2020)', '8,5 mld. Kč (zdravotnictví + vnitro)'], ['Prověřený vzorek NKÚ', '28,3 mil. ks za 1,8 mld. Kč; 13,3 mil. ks napoprvé neprošlo testem'],
+      ['Ceny', 'vnitro FFP3 za 60–422 Kč, zdravotnictví FFP2 až 777 Kč; stejný typ od 46 do 776 Kč'], ['Supervize Hologramy', '72 mil. Kč, respirátor z Číny za 38 Kč prodán za 150 Kč (přirážka cca 300 %)'],
+      ['Firma Hausenblas (vnitro)', 'více než půl miliardy Kč v jednom dni'], ['Zdravotnictví celkem', '2,34 mld. Kč, přibližně třetina dodávek stornována']],
+    time: [['březen 2020', 'nouzový stav, nákupy dvou nespolupracujících ministerstev'], ['léto 2020', 'média odhalují předražené kontrakty'], ['březen 2021', 'zpráva NKÚ'], ['2021', 'policie odkládá šetření nákupů ministerstva zdravotnictví']],
+    people: [['Adam Vojtěch', 'ANO, ex-ministr zdravotnictví', 'tvrdí, že korupce nebyla a opozice útočila neprávem'], ['Jan Hamáček', 'ČSSD, ex-ministr vnitra', 'tvrdí, že vnitro nepochybilo a zachránilo životy']],
+    src: [['Seznam Zprávy – zpráva NKÚ', 'https://www.seznamzpravy.cz/clanek/zdrcujici-zaver-kontroloru-vlada-pri-pandemii-selhala-147877'], ['ČT24 – odložení případu', 'https://ct24.ceskatelevize.cz/clanek/domaci/policie-odlozila-pripad-nakupu-respiratoru-resortem-zdravotnictvi-pise-pravo-30942']] },
+
+  { id: 'okamura', title: 'Plakáty SPD (podněcování k nenávisti)', scope: 'bez vazby', nodes: [],
+    who: 'Tomio Okamura a hnutí SPD',
+    status: 'Městský soud v září 2026 pravomocně rozhodl, že SPD plakáty nespáchalo trestný čin. Státní zastupitelství podalo dovolání k Nejvyššímu soudu. Stíhání Okamury je přerušené, Sněmovna ho v březnu 2026 nevydala. Bez přímé vazby na položku rozpočtu.',
+    facts: [['Hrozící trest', '6 měsíců až 3 roky vězení'], ['1. instance (3. 6. 2026)', 'SPD pokuta 3 mil. Kč'], ['Odvolací soud (1. 9. 2026)', 'SPD osvobozeno, pravomocně'], ['Obžaloba', 'srpen 2025, dva plakáty z kampaně 2024']],
+    time: [['únor 2025', 'Sněmovna Okamuru vydává ke stíhání (předchozí období)'], ['srpen 2025', 'obžaloba na Okamuru a SPD'], ['březen 2026', 'nově zvolená Sněmovna Okamuru nevydala'], ['červen–září 2026', 'pokuta, poté osvobození SPD, dovolání']],
+    people: [['Tomio Okamura', 'SPD, předseda Sněmovny', 'stíhání přerušeno, označuje je za politické'], ['SPD', 'hnutí', 'pravomocně osvobozeno odvolacím soudem']],
+    src: [['ČT24 – osvobození SPD', 'https://ct24.ceskatelevize.cz/clanek/domaci/spd-nespachalo-trestny-cin-podnecovani-k-nenavisti-rozhodl-odvolaci-soud-377144'], ['iROZHLAS – dovolání', 'https://www.irozhlas.cz/zpravy-domov/bradacova-se-dovolala-v-kauze-plakatu-spd-rozhodovat-bude-nejvyssi-soud_2611091515_raf']] },
+
+  { id: 'balastikova', title: 'Nahrávky Margity Balaštíkové', scope: 'bez vazby', nodes: [],
+    who: 'Margita Balaštíková (ANO, tehdy poslankyně)',
+    status: 'Policie případ s nahrávkami o zabití psa odložila jako promlčený přestupek. Jiná část (tlak na krajskou hygienu kvůli firmě exmanžela) byla dál prošetřována. Bez přímé vazby na položku rozpočtu.',
+    facts: [['Nahrávky', 'pořízeny v létě 2023, zveřejněny v srpnu 2025; podle znaleckých posudků na nich mluví ona'], ['Zmíněná cena (nahrávka)', 'odhad kolem 50 tis. Kč'], ['Reakce', 'označila nahrávky za podvrhy; pozastavila členství v ANO a byla vyškrtnuta z kandidátky']],
+    time: [['léto 2023', 'nahrávky vznikají při rozvodu'], ['srpen 2025', 'nahrávky se dostávají na veřejnost'], ['říjen 2025', 'policie odkládá případ psa pro promlčení']],
+    people: [['Margita Balaštíková', 'ANO, ex-poslankyně', 'případ psa odložen pro promlčení, tlak na hygienu prošetřován']],
+    src: [['Blesk – přehled 2025', 'https://www.blesk.cz/clanek/829290']] }
 ];
 
 // ---------- datový model ----------
@@ -332,12 +458,28 @@ function setup() {
   $('bNone').onclick = () => { setAll(P, false, true); setAll(V, false, true); fit(); };
   $('bFit').onclick = fit;
 
-  // --- Kauzy: seznam se zdroji + přepínač odznaků ---
-  $('kList').innerHTML = KAUZY.map(k =>
-    `<div class="kauza"><h3>${k.title}</h3>
-     <div class="meta">${k.who} · ${k.amount}</div>
-     <p>${k.status}</p>
-     <div class="meta">Položky: ${k.nodes.join(', ')} · <a href="${k.url}" target="_blank" rel="noopener">zdroj</a></div></div>`).join('');
+  // --- Kauzy: podrobný seznam s filtrem a hledáním ---
+  let kScope = '', kQ = '';
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const renderK = () => {
+    const q = kQ.toLowerCase();
+    const list = KAUZY.filter(k => (!kScope || k.scope === kScope) &&
+      (!q || JSON.stringify(k).toLowerCase().includes(q)));
+    $('kCount').textContent = '(' + list.length + ' z ' + KAUZY.length + ')';
+    $('kList').innerHTML = list.map(k => `<div class="kauza">
+      <h3>${esc(k.title)}<span class="tag">${esc(k.scope)}</span></h3>
+      <div class="meta">${esc(k.who)}${k.nodes.length ? ' · položky: ' + esc(k.nodes.join(', ')) : ''}</div>
+      <p>${esc(k.status)}</p>
+      <table>${k.facts.map(f => `<tr><td>${esc(f[0])}</td><td>${esc(f[1])}</td></tr>`).join('')}</table>
+      <details><summary>Průběh</summary><ul>${k.time.map(t => `<li><b>${esc(t[0])}</b>: ${esc(t[1])}</li>`).join('')}</ul></details>
+      <details><summary>Osoby a výsledky</summary><ul>${k.people.map(p => `<li><b>${esc(p[0])}</b> (${esc(p[1])}): ${esc(p[2])}</li>`).join('')}</ul></details>
+      <div class="meta">Zdroje: ${k.src.map(s => `<a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])}</a>`).join(' · ')}</div></div>`).join('');
+  };
+  renderK();
+  $('kSearch').oninput = e => { kQ = e.target.value; renderK(); };
+  document.querySelectorAll('.chip[data-s]').forEach(b => b.onclick = () => {
+    kScope = b.dataset.s; document.querySelectorAll('.chip[data-s]').forEach(x => x.classList.toggle('on', x === b)); renderK();
+  });
   $('bK').onclick = () => { $('kauzyModal').style.display = 'flex'; };
   $('closeK').onclick = () => { $('kauzyModal').style.display = 'none'; };
   $('kauzyModal').onclick = e => { if (e.target === $('kauzyModal')) $('kauzyModal').style.display = 'none'; };
@@ -434,7 +576,7 @@ function showTip() {
   if (!n.kids.length && n.g) rows.push(`<em>Růst v modelu: ${n.g > 0 ? '+' : ''}${fmt(n.g * 100, 1)} % ročně</em>`);
   if (n === debtNode) rows.push(`<em>Úrok ${fmt(rate * 100, 1)} % z dluhu ${fmt(debt, 0)} mld.</em>`);
   if (n.kids.length) rows.push(`<em>${n.kids.length} podpoložek – klikni pro ${n.exp ? 'sbalení' : 'rozbalení'}</em>`);
-  if (showK && n.kauzy) n.kauzy.forEach(k => rows.push(`<em style="color:var(--bad)">⚠ ${k.title}: ${k.who}</em>`));
+  if (showK && n.kauzy) n.kauzy.forEach(k => rows.push(`<em style="color:var(--bad)">⚠ ${k.title} – ${k.facts[0][0]}: ${k.facts[0][1]}</em>`));
   t.innerHTML = rows.join(''); t.style.display = 'block';
   t.style.left = Math.max(4, Math.min(mx + 16, width - t.offsetWidth - 4)) + 'px';
   t.style.top = Math.max(4, Math.min(my + 16, height - t.offsetHeight - 4)) + 'px';
