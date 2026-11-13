@@ -26,7 +26,7 @@ canvas{display:block}
 #tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;color:var(--mu);padding:11px 4px;font:inherit;cursor:pointer}
 #tabs button.on{color:var(--tx);border-color:var(--ac)}#tabs .g{display:none}
 #side{grid-column:2;grid-row:2;overflow-y:auto;background:var(--pn);border-left:1px solid var(--ln);padding:14px 16px 24px;-webkit-overflow-scrolling:touch}
-.pane{display:none}body[data-v=an] #p-an,body[data-v=kz] #p-kz,body[data-v=set] #p-set{display:block}
+.pane{display:none}body[data-v=an] #p-an,body[data-v=set] #p-set{display:block}
 h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);margin:18px 0 8px}h3:first-child{margin-top:0}
 ul.ins{margin:0;padding:0;list-style:none}ul.ins li{padding:8px 10px;margin-bottom:6px;background:var(--bg);border-left:3px solid var(--ac);border-radius:6px;font-size:13px}
 ul.ins li.w{border-color:var(--bad)}ul.ins li.g{border-color:var(--ok)}
@@ -37,9 +37,6 @@ svg.ch{width:100%;height:auto;display:block;background:var(--bg);border-radius:8
 button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:10px;font:inherit;cursor:pointer;margin-bottom:8px}button.b:hover{border-color:var(--ac)}
 .row{display:flex;align-items:center;justify-content:space-between;margin:10px 0}.row input[type=checkbox]{width:22px;height:22px;accent-color:var(--ac)}
 .note{font-size:12px;color:var(--mu)}
-.k{border-top:1px solid var(--ln);padding:12px 0;font-size:13px}.k h4{margin:0 0 2px;font-size:14px;color:var(--bad)}.k .tag{font-size:10px;color:var(--mu);border:1px solid var(--ln);border-radius:99px;padding:1px 7px;margin-left:6px}.k a{color:var(--ac)}.k p{margin:6px 0}
-.kb{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.kb input{flex:1 1 100%;background:var(--bg);color:var(--tx);border:1px solid var(--ln);border-radius:6px;padding:9px;font:inherit}
-.chip{background:none;color:var(--tx);border:1px solid var(--ln);border-radius:99px;padding:5px 12px;font:inherit;font-size:12px;cursor:pointer}.chip.on{background:var(--ac);color:var(--bg);border-color:var(--ac)}
 #tip{position:absolute;display:none;pointer-events:none;background:rgba(20,22,42,.97);border:1px solid var(--ln);border-radius:10px;padding:9px 12px;max-width:300px;box-shadow:0 8px 28px #000a;z-index:5}
 #tip b{display:block}#tip em{display:block;font-style:normal;color:var(--mu);font-size:12px}
 #fitB{position:absolute;right:10px;top:10px;z-index:4;width:40px;height:40px;border-radius:10px;background:var(--pn);color:var(--tx);border:1px solid var(--ln);font-size:20px;cursor:pointer;padding:0}
@@ -63,9 +60,9 @@ button.b{width:100%;background:#1f2240;color:var(--tx);border:1px solid var(--ln
 }
 </style>
 <style>
-:root{--bg:#f4f6f9;--pn:#fff;--ln:#dfe4ea;--tx:#18222e;--mu:#5b6a7b;--ac:#0b5fa5;--ok:#2f9e44;--bad:#e03131;--wr:#e8590c;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f141b;--pn:#18202a;--ln:#2a3543;--tx:#e8edf3;--mu:#98a5b5;--ac:#5aa9e6;--ok:#69db7c;--bad:#ff8787;--wr:#ffa94d;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0f141b;--pn:#18202a;--ln:#2a3543;--tx:#e8edf3;--mu:#98a5b5;--ac:#5aa9e6;--ok:#69db7c;--bad:#ff8787;--wr:#ffa94d;color-scheme:dark}
+:root{--bg:#f4f6f9;--pn:#fff;--ln:#dfe4ea;--tx:#18222e;--mu:#5b6a7b;--ac:#0b5fa5;--ok:#2f9e44;--bad:#e03131;--wr:#e8590c;--dot:rgba(24,34,46,.1);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f141b;--pn:#18202a;--ln:#2a3543;--tx:#e8edf3;--mu:#98a5b5;--ac:#5aa9e6;--ok:#69db7c;--bad:#ff8787;--wr:#ffa94d;--dot:rgba(255,255,255,.07);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f141b;--pn:#18202a;--ln:#2a3543;--tx:#e8edf3;--mu:#98a5b5;--ac:#5aa9e6;--ok:#69db7c;--bad:#ff8787;--wr:#ffa94d;--dot:rgba(255,255,255,.07);color-scheme:dark}
 html,body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 header{background:transparent;border:0;padding:16px 16px 4px;backdrop-filter:none}
 h1{font-size:24px;font-weight:700;letter-spacing:0}h1 small{font-size:13px;margin-top:2px}
@@ -82,11 +79,10 @@ h1{font-size:24px;font-weight:700;letter-spacing:0}h1 small{font-size:13px;margi
 #tabs button{background:var(--pn);color:var(--tx);border:1px solid var(--ln);border-radius:8px;padding:7px 4px;font-weight:400;font-size:14px}
 #tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 #side{background:var(--pn);border:1px solid var(--ln);border-radius:0 0 12px 12px}
-.chip.on{color:#fff}ul.ins li{background:var(--bg);border-radius:8px}
+ul.ins li{background:var(--bg);border-radius:8px}
 svg.ch{border:1px solid var(--ln);background:var(--bg);border-radius:10px}svg.ch text{fill:var(--mu)}
 svg.ch line[stroke="#262a48"]{stroke:var(--ln)}svg.ch line[stroke="#8e92b8"]{stroke:var(--mu)}svg.ch line[stroke="#89b4fa"],svg.ch polyline[stroke="#89b4fa"]{stroke:var(--ac)}
 svg.ch polyline[stroke="#a6e3a1"]{stroke:var(--ok)}svg.ch polyline[stroke="#f38ba8"]{stroke:var(--bad)}svg.ch rect[fill="#a6e3a1"]{fill:var(--ok)}svg.ch rect[fill="#f38ba8"]{fill:var(--bad)}
-.k{border:1px solid var(--ln);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--bg)}
 button.b{background:var(--pn);color:var(--tx);border-radius:8px}
 #fitB,#tip{background:var(--pn);border-radius:10px;backdrop-filter:none}
 input[type=range]{-webkit-appearance:none;appearance:none;height:26px;background:transparent}
@@ -95,6 +91,19 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:var(--ln)}
 input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--ac);border:2px solid var(--pn);box-shadow:0 1px 4px #0005}
 @media(max-width:859px){header{padding:10px 12px 2px}h1{font-size:18px}#kpi{padding:8px 12px;gap:8px}#kpi div{flex:1 0 108px;padding:6px 10px}#kpi span{font-size:17px}#model{padding:0 12px 8px;gap:10px}.mc{padding:4px 10px 0}#main{padding:0}#stage,#side{border-radius:0;border-left:0;border-right:0}#tabs{border:0;border-top:1px solid var(--ln);border-radius:0;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}}
+</style>
+<style>
+button,.pb{transition:background .15s,border-color .15s,box-shadow .15s,filter .15s}
+#kpi div,.mc,.yr,#stage,#tabs,#side{box-shadow:0 1px 2px rgba(16,24,40,.05),0 4px 14px rgba(16,24,40,.04)}
+#kpi div:nth-child(1){border-top:3px solid var(--ok)}#kpi div:nth-child(2){border-top:3px solid var(--bad)}#kpi div:nth-child(4){border-top:3px solid var(--ac)}
+.yr b{font-size:18px;color:var(--ac)}
+h3::before{content:"";display:inline-block;width:3px;height:11px;background:var(--ac);border-radius:2px;margin-right:8px;vertical-align:-1px}
+#stage{background:radial-gradient(circle,var(--dot) 1px,transparent 1.3px) 0 0/24px 24px,var(--pn)}
+#tabs button:hover:not(.on),button.b:hover{border-color:var(--ac);color:var(--ac)}.pb:hover{filter:brightness(1.1)}
+#tip{box-shadow:0 8px 24px rgba(16,24,40,.18)}
+.bar div{height:6px;border-radius:3px}.bar{margin-bottom:11px}
+ul.ins li{padding:9px 12px;line-height:1.45}
+@media(max-width:859px){#stage,#side,#tabs{box-shadow:none}}
 </style>
 </head>
 <body data-v="an">
@@ -114,7 +123,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
 <div id="drw"><div class="dh"><b>Parametry simulace</b><button class="pb" id="dX">✕</button></div><div id="dB"></div></div>
 <div id="main">
  <div id="stage"><div id="tip"></div><button id="fitB" title="Vycentrovat přehled" aria-label="Vycentrovat přehled">⤢</button><div id="hint">Klik = rozbalit · tažení = posun · kolečko / štípnutí = zoom</div></div>
- <nav id="tabs"><button class="g" data-v="graf">Graf</button><button data-v="an" class="on">Analýza</button><button data-v="kz">Kauzy</button><button data-v="set">Nastavení</button></nav>
+ <nav id="tabs"><button class="g" data-v="graf">Graf</button><button data-v="an" class="on">Analýza</button><button data-v="set">Nastavení</button></nav>
  <aside id="side">
   <section class="pane" id="p-an">
    <h3>Hlavní zjištění</h3><ul class="ins" id="ins"></ul>
@@ -124,13 +133,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
    <h3>Výdaje podle oblastí</h3><div id="vb"></div>
    <h3>Příjmy podle zdrojů</h3><div id="pb"></div>
   </section>
-  <section class="pane" id="p-kz">
-   <h3>Kauzy a rozpočet</h3>
-   <div class="row"><label for="kT">Označit kauzy v grafu (⚠)</label><input type="checkbox" id="kT"></div>
-   <div class="kb"><input id="kS2" placeholder="Hledat jméno, stranu, kauzu…"><button class="chip on" data-s="">Vše</button><button class="chip" data-s="stát">Stát</button><button class="chip" data-s="kraj">Kraj</button><button class="chip" data-s="město">Město</button></div>
-   <div id="kL"></div>
-   <p class="note">Stav k 12. 11. 2026 podle zpravodajských zdrojů; před dalším šířením ověřte u aktuálních rozhodnutí soudů. Do pravomocného rozhodnutí platí presumpce neviny. Napojení na položky grafu je orientační.</p>
-  </section>
+  
   <section class="pane" id="p-set">
    <h3>Scénáře</h3>
    
@@ -154,22 +157,10 @@ const fmt=(v,d=1)=>new Intl.NumberFormat('cs-CZ',{minimumFractionDigits:d,maximu
 const rgbOf=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const GAP=4,SC=.45,BASE_DEBT=3200,BASE_GDP=7800;let GDP_G=.045;
-let W=190,CG=64,P,V,debtNode,year=2024,rate=.03,debt=BASE_DEBT,gdp=BASE_GDP,panX=0,panY=0,zoom=1,mx=-1,my=-1,hover=null,bounds,cnv,showK=false,touched=false,S=[],base24={};
+let W=190,CG=64,P,V,debtNode,year=2024,rate=.03,debt=BASE_DEBT,gdp=BASE_GDP,panX=0,panY=0,zoom=1,mx=-1,my=-1,hover=null,bounds,cnv,touched=false,S=[],base24={};
 const ptrs=new Map();const ADJ={P:0,V:0},BK=2.2,BG=10;let DK=true,TXC=[236,237,250],ARC=[255,255,255,170],WW=190,LB=[],MODE='blk',S0=[],REL=new Set(),tgt=null;const dimA=n=>hover&&!REL.has(n)?.3:1;let moved=false,start=null,lastPinch=null;
 const HIST={2020:{p:1475.5,v:1842.9},2021:{p:1487.2,v:1906.9},2022:{p:1624,v:1985,approx:true},2023:{p:1914.1,v:2202.6}};
-const KAUZY=[
-{t:'Čapí hnízdo',s:'stát',n:['Strukturální a kohezní fondy'],w:'Andrej Babiš (ANO), Jana Nagyová (ANO)',st:'Nagyová: Městský soud ji 4. 5. 2026 uznal vinnou, Vrchní soud trest potvrdil. Babiš: Sněmovna ho v březnu 2026 nevydala ke stíhání. Oba vinu odmítají.',f:['Dotace','50 mil. Kč z fondů EU (vráceno 2018)'],u:'https://ct24.ceskatelevize.cz/tema/capi-hnizdo-6704',l:'ČT24'},
-{t:'Střet zájmů a dotace Agrofertu',s:'stát',n:['Společná zemědělská politika','Strukturální a kohezní fondy'],w:'Andrej Babiš (ANO)',st:'Audit Evropské komise shledal střet zájmů. Část projektů už stát proplatil sám; Agrofert s auditem nesouhlasí.',f:['Vyplaceno','min. 155 mil. Kč ze státní pokladny'],u:'https://www.seznamzpravy.cz/clanek/domaci-kauzy-ujistili-eu-ze-dotace-pro-agrofert-jsou-zmrazeny-vzapeti-miliardy-uvolnili-305430',l:'Seznam Zprávy'},
-{t:'Kauza Rath',s:'kraj',n:['Dotace krajům','Dotace nemocnicím'],w:'David Rath (ČSSD) a další',st:'Rath pravomocně odsouzen (7 + 1 rok), Ústavní soud stížnosti odmítl.',f:['Objem zakázek','přes 700 mil. Kč'],u:'https://ct24.ceskatelevize.cz/david-rath/',l:'ČT24'},
-{t:'Trafiky a Nagygate',s:'stát',n:['Dividendy a odvody státních podniků','Ústavní orgány a úřady'],w:'Petr Nečas (ODS), Jana Nečasová',st:'Pravomocně odsouzeni, Ústavní soud v roce 2026 stížnosti odmítl.',f:['Trest Nečase','2,5 roku podmíněně, pokuta 1 mil. Kč'],u:'https://www.seznamzpravy.cz/clanek/domaci-zivot-v-cesku-kauza-trafik-pro-exposlance-skoncila-ustavni-soud-odmitl-stiznost-303905',l:'Seznam Zprávy'},
-{t:'Dozimetr',s:'město',n:['Dotace obcím','Platby za státní pojištěnce'],w:'Petr Hlubuček (STAN), Michal Redl',st:'Probíhá hlavní líčení. Obžalovaní vinu odmítají.',f:['Návrh trestů (2026)','Redl 10 let, Hlubuček 8 let'],u:'https://ct24.ceskatelevize.cz/tema/kauza-dozimetr-1723',l:'ČT24'},
-{t:'Bitcoinový dar justici',s:'stát',n:['Spravedlnost','Ostatní nedaňové'],w:'Pavel Blažek (ODS), Tomáš Jiřikovský',st:'Obžalovány 4 osoby, vinu popírají.',f:['Dar','téměř 1 mld. Kč (468 BTC)'],u:'https://ct24.ceskatelevize.cz/tema/tomas-jirikovsky-99489',l:'ČT24'},
-{t:'Autostráda',s:'kraj',n:['Silnice II. a III. třídy','Dotace krajům'],w:'Michal Zácha (ODS), Robert Knobloch',st:'Návrh obžaloby 8 lidí, úplatky přes 46 mil. Kč.',f:['Kód','2 slivovice = 200 tis. Kč'],u:'https://www.seznamzpravy.cz/clanek/domaci-kauzy-policie-politici-ods-pouzivali-pro-uplatky-kody-2-slivovice-200-tisic-239879',l:'Seznam Zprávy'},
-{t:'Opencard',s:'město',n:['Dotace obcím'],w:'Bohuslav Svoboda, Tomáš Hudeček, úředníci',st:'Politici pravomocně zproštěni, úředníci dostali podmínky.',f:['Náklady','přes 1,7 mld. Kč'],u:'https://ct24.ceskatelevize.cz/tema/opencard-17519',l:'ČT24'},
-{t:'Stoka (Brno-střed)',s:'město',n:['Dotace obcím'],w:'Jiří Švachula (ANO) a další',st:'Švachula dohodl trest 7 let a 8 měsíců.',f:['Zakázky','přes 260 mil. Kč'],u:'https://ct24.ceskatelevize.cz/tema/kauza-stoka-4477',l:'ČT24'},
-{t:'Roušky a respirátory',s:'stát',n:['Záchranné služby a ostatní','Státní správa'],w:'Adam Vojtěch (ANO), Jan Hamáček (ČSSD)',st:'NKÚ kritizoval netransparentnost, policie šetření odložila.',f:['Cena','8,5 mld. Kč za 1. polovinu 2020'],u:'https://www.seznamzpravy.cz/clanek/zdrcujici-zaver-kontroloru-vlada-pri-pandemii-selhala-147877',l:'Seznam Zprávy'}];
-
-class Node{constructor(name,col,parent,depth){this.name=name;this.rgb=this.rgb0=rgbOf(col);this.parent=parent;this.depth=depth;this.root=parent?parent.root:this;this.kids=[];this.exp=false;this.base=0;this.sim=0;this.val=0;this.g=0;this.x=this.y=this.h=0;this.tx=this.ty=this.th=0;this.sub=0;this.init=false;this.kauzy=null;this.grp=depth===1?name:(parent?parent.grp:'');this.cx=this.cy=this.cr=0}
+class Node{constructor(name,col,parent,depth){this.name=name;this.rgb=this.rgb0=rgbOf(col);this.parent=parent;this.depth=depth;this.root=parent?parent.root:this;this.kids=[];this.exp=false;this.base=0;this.sim=0;this.val=0;this.g=0;this.x=this.y=this.h=0;this.tx=this.ty=this.th=0;this.sub=0;this.init=false;this.grp=depth===1?name:(parent?parent.grp:'');this.cx=this.cy=this.cr=0}
 reset(){this.sim=this.base;this.kids.forEach(k=>k.reset())}
 grow(){this.kids.length?this.kids.forEach(k=>k.grow()):this.sim*=1+this.g+(ADJ[this.grp]||0)+(this.root===P?ADJ.P:ADJ.V)}
 total(){return this.val=this.kids.length?this.kids.reduce((s,k)=>s+k.total(),0):this.sim}}
@@ -188,8 +179,7 @@ V=build(['CELKOVÉ VÝDAJE',[['Práce a sociální věci',[['Důchodový systém
 ['Odvod do rozpočtu EU',60,.02,'#74c7ec'],['Obsluha státního dluhu',95,0,'#cba6f7'],
 ['Ostatní resorty',[['Zemědělství',65,.015],['Průmysl a obchod',50,.02],['Spravedlnost',[['Soudy',17,.03],['Vězeňství',12,.03],['Státní zastupitelství',6,.03]]],['Zahraničí',[['Zastupitelské úřady',8,.02],['Rozvojová spolupráce',4,.02],['Mezinárodní organizace',3,.02]]],['Kultura',[['Kulturní instituce',9,.02],['Památková péče',5,.02]]],['Životní prostředí',[['Ochrana ovzduší a vod',15,.02],['Krajina a příroda',10,.02]]],['Místní rozvoj',[['Podpora bydlení',7,.02],['Cestovní ruch',3,.02],['Regionální rozvoj',2,.02]]],['Ústavní orgány a úřady',8,.02],['Rezervy',42,.02]],0,'#b4befe']]],null,'#f38ba8',0);
 P.exp=V.exp=true;
-const by={},idx=n=>{by[n.name]=n;n.kids.forEach(idx)};idx(P);idx(V);
-KAUZY.forEach(k=>k.n.forEach(nm=>{for(let a=by[nm];a;a=a.parent){(a.kauzy=a.kauzy||[]);if(!a.kauzy.includes(k))a.kauzy.push(k)}}))}
+}
 
 function scaleTo(n,f){n.kids.length?n.kids.forEach(k=>scaleTo(k,f)):n.sim*=f}
 function simulate(){
@@ -287,12 +277,7 @@ const upQ=()=>{const a=Math.max(1,+$('donAmt').value||1).toFixed(2),spd=`SPD*1.0
 try{const q=qrcode(0,'M');q.addData(spd);q.make();$('qr').innerHTML=q.createSvgTag({cellSize:4,margin:4,scalable:true})}catch(e){$('qr').textContent='QR kód se nepodařilo vytvořit'}};
 $('donAmt').oninput=upQ;upQ();
 $('bCopy').onclick=()=>{const t=ACC+'/'+BANK;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>$('bCopy').textContent='Zkopírováno ✓').catch(()=>$('bCopy').textContent=t)};
-$('kT').onchange=e=>showK=e.target.checked;
-let sc='',q='';
-const rk=()=>{const L=KAUZY.filter(k=>(!sc||k.s===sc)&&(!q||JSON.stringify(k).toLowerCase().includes(q)));
-$('kL').innerHTML=L.map(k=>`<div class="k"><h4>${esc(k.t)}<span class="tag">${k.s}</span></h4><div class="note">${esc(k.w)} · ${esc(k.n.join(', '))}</div><p>${esc(k.st)}</p><p class="note">${esc(k.f[0])}: ${esc(k.f[1])} · <a href="${k.u}" target="_blank" rel="noopener">${esc(k.l)}</a></p></div>`).join('')||'<p class="note">Nic nenalezeno.</p>'};
-rk();$('kS2').oninput=e=>{q=e.target.value.toLowerCase();rk()};
-document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{sc=b.dataset.s;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===b));rk()})}
+}
 
 function pick(n,wx,wy){if(MODE==='bub')return pickB(n,wx,wy);let f=null;if(wx>=xd(n)&&wx<=xd(n)+WW&&wy>=n.y&&wy<=n.y+n.h)f=n;if(n.exp)for(const k of n.kids){const r=pick(k,wx,wy);if(r)f=r}return f}
 function draw(){clear();doLayout();const wx=(mx-panX)/zoom,wy=(my-panY)/zoom;
@@ -319,16 +304,16 @@ const isDk=()=>{const t=document.documentElement.getAttribute('data-theme');retu
 function applyTheme(){DK=isDk();TXC=DK?[236,237,250]:[24,34,46];ARC=DK?[255,255,255,170]:[24,34,46,150];const f=n=>{n.rgb=DK?n.rgb0:n.rgb0.map(v=>Math.round(v*.66));n.kids.forEach(f)};f(P);f(V)}
 function fitName(t,av){const T=(z,mn)=>{textSize(z);if(textWidth(t)<=av)return[t,z];if(mn){let l=t;while(l.length>1&&textWidth(l+'\u2026')>av)l=l.slice(0,-1);if(l.length>=mn)return[l.trim()+'\u2026',z]}return null};return T(12.5)||T(10.5)||T(9)||T(12.5,4)||T(9,3)}
 function label(n,x,y,w,h,ctr){x=Math.round(x);y=Math.round(y);w=Math.round(w);h=Math.round(h);
-const bk=!ctr,ar=bk&&n.kids.length&&w>=26?14:0,kz=bk&&showK&&n.kauzy&&w>=46?24:0,ic=bk&&ikey(n)&&w>=110&&h>=22?20:0,av=w-10-ar-kz-ic;noStroke();textAlign(LEFT,TOP);
+const bk=!ctr,ar=bk&&n.kids.length&&w>=26?14:0,ic=bk&&ikey(n)&&w>=110&&h>=22?20:0,av=w-10-ar-ic;noStroke();textAlign(LEFT,TOP);textStyle(BOLD);
 const f=h>=16&&av>=10?fitName(n.name,av):null;
 if(!f){if(w>=16&&h>=16){const k=ikey(n);if(k)icon(k,x+w/2,y+h/2,Math.min(18,w-4,h-4),`rgb(${n.rgb})`);else{textAlign(CENTER,CENTER);textSize(Math.min(15,w-4,h-4));fill(...TXC);text(n.name[0],x+w/2,y+h/2)}}return}
 textSize(11);const a=fmt(n.val,n.val<10?1:0)+' mld.',pc=fmt(n.val/n.root.val*100,1)+' %',aw=w-10,wa=textWidth(a),wp=textWidth(pc),wf=textWidth(a+' \u00b7 '+pc),nm=f[1]+5;
 const one=h>=nm+16&&wf<=aw,two=!one&&h>=nm+31&&Math.max(wa,wp)<=aw,tot=nm+(one?16:two?31:0),y0=ctr?y+Math.max(2,(h-tot)/2):y+5,cx=ctr?x+w/2:x+5+ic;
-textAlign(ctr?CENTER:LEFT,TOP);textSize(f[1]);fill(...TXC);text(f[0],cx,y0);textSize(11);fill(n.rgb[0],n.rgb[1],n.rgb[2]);
+textAlign(ctr?CENTER:LEFT,TOP);textSize(f[1]);fill(...TXC);text(f[0],cx,y0);textStyle(NORMAL);textSize(11);fill(n.rgb[0],n.rgb[1],n.rgb[2]);
 if(one)text(a+' \u00b7 '+pc,cx,y0+nm);else if(two){text(a,cx,y0+nm);text(pc,cx,y0+nm+14)}
-else if(bk&&f[0]===n.name){textSize(f[1]);const wn=textWidth(n.name);textSize(11);if(wn+wa+10<=av){textAlign(RIGHT,TOP);text(a,x+5+ic+av,y0+1)}}
+else if(bk&&f[0]===n.name){textStyle(BOLD);textSize(f[1]);const wn=textWidth(n.name);textStyle(NORMAL);textSize(11);if(wn+wa+10<=av){textAlign(RIGHT,TOP);text(a,x+5+ic+av,y0+1)}}
 if(ic)icon(ikey(n),x+12,y0+6,14,`rgb(${n.rgb})`);textAlign(RIGHT,TOP);if(ar){fill(...ARC);textSize(12);text(n.exp?'\u25be':'\u25b8',x+w-5,y+5)}
-if(kz){fill(243,139,168);textSize(12);text('\u26a0'+n.kauzy.length,x+w-5-ar,y+5)}}
+}
 function drawNode(n,dir){
 if(!n.init){const p=n.parent;n.x=p?p.x:n.tx;n.y=p?p.y:n.ty;n.h=0;n.init=true}
 n.x+=(n.tx-n.x)*.2;n.y+=(n.ty-n.y)*.2;n.h+=(n.th-n.h)*.2;
@@ -348,7 +333,7 @@ if(n.exp&&n.kids.length){const D=n.D,w=n.ord.map(k=>2*Math.asin(Math.min(1,(k.F+
 n.ord.forEach((k,i)=>{const t=a+w[i]/2+sl/2;a+=w[i]+sl;bp(k,x+D*Math.cos(t),y+D*Math.sin(t),t)})}}
 function bstep(n,p){if(!n.init){n.cx=p?p.cx:n.bx;n.cy=p?p.cy:n.by;n.cr=0;n.init=true}n.cx+=(n.bx-n.cx)*.2;n.cy+=(n.by-n.cy)*.2;n.cr+=(n.br-n.cr)*.2}
 function drawBub(n){if(n.cr*zoom<.4)return;const[r,g,b]=n.rgb,hv=hover===n;drawingContext.globalAlpha=dimA(n);
-fill(r,g,b,hv?110:(n.kids.length&&!n.exp?80:40));stroke(hv?color(...TXC):(showK&&n.kauzy?color(243,139,168):color(r,g,b)));strokeWeight((hv?2:1.2)/zoom);circle(n.cx,n.cy,n.cr*2);
+fill(r,g,b,hv?110:(n.kids.length&&!n.exp?80:40));stroke(hv?color(...TXC):color(r,g,b));strokeWeight((hv?2:1.2)/zoom);circle(n.cx,n.cy,n.cr*2);
 if(n.cr*zoom>=9&&Math.abs(n.cr-n.br)*zoom<2)LB.push([n,(n.cx-n.cr*.78)*zoom+panX,(n.cy-n.cr*.78)*zoom+panY,n.cr*1.56*zoom,n.cr*1.56*zoom,1,dimA(n)]);
 if(n.exp&&n.kids.length)for(const k of n.ord){bstep(k,n);const dx=k.cx-n.cx,dy=k.cy-n.cy,d=Math.hypot(dx,dy)||1;
 if(d>n.cr+k.cr){drawingContext.globalAlpha=dimA(k);stroke(k.rgb[0],k.rgb[1],k.rgb[2],110);strokeWeight(1.5/zoom);line(n.cx+dx/d*n.cr,n.cy+dy/d*n.cr,k.cx-dx/d*k.cr,k.cy-dy/d*k.cr)}
@@ -362,7 +347,6 @@ if(!n.kids.length&&n.g)R.push(`<em>Růst v modelu: ${n.g>0?'+':''}${fmt(n.g*100,
 if(n.parent&&n.parent.name==='Dotace obcím')R.push('<em>Orientační rozdělení podle počtu obyvatel</em>');
 if(n===debtNode)R.push(`<em>Úrok ${fmt(rate*100,1)} % z dluhu ${fmt(debt,0)} mld.</em>`);
 if(n.kids.length)R.push(`<em>${n.kids.length} podpoložek – klikni pro ${n.exp?'sbalení':'rozbalení'}</em>`);
-if(showK&&n.kauzy)n.kauzy.forEach(k=>R.push(`<em style="color:var(--bad)">⚠ ${esc(k.t)} – ${esc(k.f[0])}: ${esc(k.f[1])}</em>`));
 t.innerHTML=R.join('');t.style.display='block';
 if(width>=600){let ty=ptrs.size>0?my-t.offsetHeight-20:my+16;t.style.left=Math.max(4,Math.min(mx+16,width-t.offsetWidth-4))+'px';t.style.top=Math.max(4,Math.min(ty,height-t.offsetHeight-4))+'px'}}
 
