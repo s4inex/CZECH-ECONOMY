@@ -103,13 +103,23 @@ h3::before{content:"";display:inline-block;width:3px;height:11px;background:var(
 #tip{box-shadow:0 8px 24px rgba(16,24,40,.18)}
 .bar div{height:6px;border-radius:3px}.bar{margin-bottom:11px}
 ul.ins li{padding:9px 12px;line-height:1.45}
-@media(max-width:859px){#stage,#side,#tabs{box-shadow:none}}
+.apps{position:relative;margin-left:4px}
+#appB{width:40px;height:40px;border-radius:50%;background:transparent;border:0;color:var(--mu);padding:0;display:grid;place-items:center;cursor:pointer}
+#appB:hover,#appB[aria-expanded=true]{background:var(--pn);color:var(--ac)}
+#appM{position:absolute;right:0;top:46px;z-index:40;width:300px;background:var(--pn);border:1px solid var(--ln);border-radius:16px;padding:12px;box-shadow:0 12px 32px rgba(16,24,40,.2);display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+#appM[hidden]{display:none}
+#appM a{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;border-radius:12px;color:var(--tx);text-decoration:none;font-size:12px;text-align:center;line-height:1.25}
+#appM a:hover{background:var(--bg)}#appM a.cur{background:var(--bg);outline:1px solid var(--ln);cursor:default}
+#appM i{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:#fff}
+#appM i svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media(max-width:859px){#appM{position:fixed;left:10px;right:10px;top:calc(56px + env(safe-area-inset-top,0px));width:auto}#stage,#side,#tabs{box-shadow:none}}
 </style>
 </head>
 <body data-v="an">
 <header>
  <h1>Státní rozpočet ČR<small>Příjmy, výdaje a dluh do roku 2050</small></h1>
  <div class="yr"><label><span>Rok</span><b id="yl">2024</b></label><input type="range" id="yr" min="2020" max="2050" value="2024" aria-label="Rok"></div>
+<div class="apps"><button id="appB" aria-label="Aplikace" aria-haspopup="true" aria-expanded="false" title="Aplikace"><svg viewBox="0 0 24 24" width="22" height="22" fill="none"><path d="M5 5h2v2H5zM11 5h2v2h-2zM17 5h2v2h-2zM5 11h2v2H5zM11 11h2v2h-2zM17 11h2v2h-2zM5 17h2v2H5zM11 17h2v2h-2zM17 17h2v2h-2z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button><div id="appM" hidden></div></div>
 </header>
 <div id="kpi">
  <div><small>Příjmy</small><span id="kP" style="color:var(--ok)"></span></div>
@@ -268,6 +278,12 @@ $('dB').oninput=e=>{const k=e.target.dataset.k;if(k===undefined)return;ADJ[k]=e.
 $('dR').onclick=()=>{Object.keys(ADJ).forEach(k=>ADJ[k]=0);$('dB').querySelectorAll('input').forEach(i=>i.value=0);$('dB').querySelectorAll('[data-o]').forEach(b=>b.textContent='0,0 p. b.');setP(.03,.045)};
 $('bPar').onclick=()=>$('drw').classList.add('on');$('dX').onclick=()=>$('drw').classList.remove('on');
 const setM=m=>{MODE=m;$('mB').classList.toggle('on',m==='blk');$('mU').classList.toggle('on',m==='bub');[P,V].forEach(n=>{n.init=false;resetInit(n)});fit(true);if(innerWidth<860)setView('graf')};
+const APPS=[{n:'Státní rozpočet ČR',c:'#0b5fa5',p:'M3 7h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7V5a2 2 0 0 1 2-2h12v4M16 14h.01',cur:1},{n:'Emise z dopravy v EU',c:'#2f9e44',p:'M5 21c0-10 6-16 16-16 0 10-6 16-16 16zM5 21l8-8',u:'https://s4inex.github.io/EU-Emissions/'}];
+$('appM').innerHTML=APPS.map(a=>(a.cur?'<a class="cur" aria-current="page">':`<a href="${a.u}" target="_blank" rel="noopener">`)+`<i style="background:${a.c}"><svg viewBox="0 0 24 24"><path d="${a.p}"/></svg></i>${a.n}</a>`).join('');
+const tg=o=>{$('appM').hidden=!o;$('appB').setAttribute('aria-expanded',o)};
+$('appB').onclick=e=>{e.stopPropagation();tg($('appM').hidden)};
+document.addEventListener('click',e=>{if(!$('appM').contains(e.target))tg(false)});
+addEventListener('keydown',e=>{if(e.key==='Escape')tg(false)});
 $('mB').onclick=()=>setM('blk');$('mU').onclick=()=>setM('bub');applyTheme();const th=()=>{applyTheme();refresh()};matchMedia('(prefers-color-scheme:dark)').addEventListener('change',th);new MutationObserver(th).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});refresh();
 $('bAll').onclick=()=>{setAll(P,true,true);setAll(V,true,true);fit();afterFit()};
 $('bNone').onclick=()=>{setAll(P,false,true);setAll(V,false,true);fit();afterFit()};
