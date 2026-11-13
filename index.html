@@ -278,7 +278,7 @@ $('dB').oninput=e=>{const k=e.target.dataset.k;if(k===undefined)return;ADJ[k]=e.
 $('dR').onclick=()=>{Object.keys(ADJ).forEach(k=>ADJ[k]=0);$('dB').querySelectorAll('input').forEach(i=>i.value=0);$('dB').querySelectorAll('[data-o]').forEach(b=>b.textContent='0,0 p. b.');setP(.03,.045)};
 $('bPar').onclick=()=>$('drw').classList.add('on');$('dX').onclick=()=>$('drw').classList.remove('on');
 const setM=m=>{MODE=m;$('mB').classList.toggle('on',m==='blk');$('mU').classList.toggle('on',m==='bub');[P,V].forEach(n=>{n.init=false;resetInit(n)});fit(true);if(innerWidth<860)setView('graf')};
-const APPS=[{n:'Státní rozpočet ČR',c:'#0b5fa5',p:'M3 7h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7V5a2 2 0 0 1 2-2h12v4M16 14h.01',cur:1},{n:'Emise z dopravy v EU',c:'#2f9e44',p:'M5 21c0-10 6-16 16-16 0 10-6 16-16 16zM5 21l8-8',u:'https://s4inex.github.io/EU-Emissions/'}];
+const APPS=[{n:'Státní rozpočet ČR',c:'#0b5fa5',p:'M3 7h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7V5a2 2 0 0 1 2-2h12v4M16 14h.01',cur:1},{n:'Emise z dopravy v EU',c:'#2f9e44',p:'M5 21c0-10 6-16 16-16 0 10-6 16-16 16zM5 21l8-8',u:'https://s4inex.github.io/EU-EMISSIONS/'}];
 $('appM').innerHTML=APPS.map(a=>(a.cur?'<a class="cur" aria-current="page">':`<a href="${a.u}" target="_blank" rel="noopener">`)+`<i style="background:${a.c}"><svg viewBox="0 0 24 24"><path d="${a.p}"/></svg></i>${a.n}</a>`).join('');
 const tg=o=>{$('appM').hidden=!o;$('appB').setAttribute('aria-expanded',o)};
 $('appB').onclick=e=>{e.stopPropagation();tg($('appM').hidden)};
